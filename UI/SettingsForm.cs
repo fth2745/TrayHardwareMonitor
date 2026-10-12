@@ -21,6 +21,7 @@ public class SettingsForm : Form
 
     private readonly NumericUpDown _numBgInterval;
     private readonly NumericUpDown _numDetailInterval;
+    private readonly NumericUpDown _numHoverDelay;
     private readonly ComboBox _cmbTraySensor;
     private readonly CheckedListBox _lstPinned;
     private readonly CheckBox _chkAutoStart;
@@ -31,7 +32,7 @@ public class SettingsForm : Form
         _hardwareService = hardwareService;
 
         Text = "Ayarlar - Tray Hardware Monitor";
-        ClientSize = new Size(520, 640);
+        ClientSize = new Size(520, 670);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -43,12 +44,12 @@ public class SettingsForm : Form
             .Select(s => new SensorItem(HardwareMonitorService.GetId(s), FormatSensorText(s)))
             .ToList();
 
-        // ---------------- Yenileme aralıkları
+        // ---------------- Yenileme ve Zamanlama Aralıkları
         var grpIntervals = new GroupBox
         {
-            Text = "Yenileme Aralıkları",
+            Text = "⏱️ Yenileme ve Zamanlama Ayarları",
             Location = new Point(16, 12),
-            Size = new Size(488, 92)
+            Size = new Size(488, 128)
         };
 
         grpIntervals.Controls.Add(new Label { Text = "Arka plan / tepsi yenileme (sn):", Location = new Point(14, 28), AutoSize = true });
@@ -64,7 +65,7 @@ public class SettingsForm : Form
         };
         grpIntervals.Controls.Add(_numBgInterval);
 
-        grpIntervals.Controls.Add(new Label { Text = "Detay pencere yenileme (sn):", Location = new Point(14, 60), AutoSize = true });
+        grpIntervals.Controls.Add(new Label { Text = "Detaylı rapor pencere yenileme (sn):", Location = new Point(14, 60), AutoSize = true });
         _numDetailInterval = new NumericUpDown
         {
             Location = new Point(370, 57),
@@ -76,13 +77,26 @@ public class SettingsForm : Form
             Value = Math.Clamp((decimal)(_settings.DetailIntervalMs / 1000.0), 0.5m, 5m)
         };
         grpIntervals.Controls.Add(_numDetailInterval);
+
+        grpIntervals.Controls.Add(new Label { Text = "Mini kart açılış gecikmesi (sn):", Location = new Point(14, 92), AutoSize = true });
+        _numHoverDelay = new NumericUpDown
+        {
+            Location = new Point(370, 89),
+            Width = 100,
+            Minimum = 0.1m,
+            Maximum = 3.0m,
+            DecimalPlaces = 1,
+            Increment = 0.1m,
+            Value = Math.Clamp((decimal)(_settings.HoverDelayMs / 1000.0), 0.1m, 3.0m)
+        };
+        grpIntervals.Controls.Add(_numHoverDelay);
         Controls.Add(grpIntervals);
 
         // ---------------- Tepsi simgesi
         var grpTray = new GroupBox
         {
             Text = "Tepsi Simgesinde Gösterilecek Değer",
-            Location = new Point(16, 114),
+            Location = new Point(16, 150),
             Size = new Size(488, 66)
         };
         _cmbTraySensor = new ComboBox
@@ -102,14 +116,14 @@ public class SettingsForm : Form
         var grpPinned = new GroupBox
         {
             Text = "Mini Özet Kartında Gösterilecek Sensörler (işaretle, sırala)",
-            Location = new Point(16, 190),
-            Size = new Size(488, 340)
+            Location = new Point(16, 226),
+            Size = new Size(488, 330)
         };
 
         _lstPinned = new CheckedListBox
         {
             Location = new Point(14, 26),
-            Size = new Size(372, 300),
+            Size = new Size(372, 290),
             CheckOnClick = true,
             IntegralHeight = false,
             HorizontalScrollbar = true
@@ -150,7 +164,7 @@ public class SettingsForm : Form
         var grpGeneral = new GroupBox
         {
             Text = "Genel",
-            Location = new Point(16, 540),
+            Location = new Point(16, 566),
             Size = new Size(488, 52)
         };
         _chkAutoStart = new CheckBox
@@ -167,7 +181,7 @@ public class SettingsForm : Form
         var btnSave = new Button
         {
             Text = "Kaydet",
-            Location = new Point(328, 600),
+            Location = new Point(328, 626),
             Size = new Size(85, 30),
             BackColor = Color.FromArgb(0, 120, 215),
             ForeColor = Color.White,
@@ -179,7 +193,7 @@ public class SettingsForm : Form
         {
             Text = "İptal",
             DialogResult = DialogResult.Cancel,
-            Location = new Point(419, 600),
+            Location = new Point(419, 626),
             Size = new Size(85, 30)
         };
 
@@ -229,6 +243,7 @@ public class SettingsForm : Form
     {
         _settings.BackgroundIntervalMs = (int)(_numBgInterval.Value * 1000);
         _settings.DetailIntervalMs = (int)(_numDetailInterval.Value * 1000);
+        _settings.HoverDelayMs = (int)(_numHoverDelay.Value * 1000);
 
         if (_cmbTraySensor.SelectedItem is SensorItem traySensor)
         {

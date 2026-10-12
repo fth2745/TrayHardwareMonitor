@@ -94,6 +94,11 @@ public class MiniSummaryForm : Form
         _dataProvider = provider;
     }
 
+    public void SetHoverDelay(int ms)
+    {
+        _openDelayTimer.Interval = Math.Clamp(ms, 100, 5000);
+    }
+
     /// <summary>Fare tepsi simgesinin üzerindeyken tetiklenir (0.8 sn gecikmeli solarak açılış).</summary>
     public void NotifyTrayHover()
     {

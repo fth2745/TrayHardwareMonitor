@@ -41,10 +41,13 @@ public class DetailForm : Form
     /// <summary>Pencere görünür ve simge durumunda değilse true (tam tarama bu durumda yapılır).</summary>
     public bool IsActivelyMonitoring => Visible && WindowState != FormWindowState.Minimized;
 
-    public DetailForm(HardwareMonitorService hardwareService, AppSettings settings)
+    private readonly Action? _onOpenSettings;
+
+    public DetailForm(HardwareMonitorService hardwareService, AppSettings settings, Action? onOpenSettings = null)
     {
         _hardwareService = hardwareService;
         _settings = settings;
+        _onOpenSettings = onOpenSettings;
 
         Text = "Tray Hardware Monitor - Detaylı Donanım Raporu";
         Size = new Size(900, 620);
@@ -80,13 +83,33 @@ public class DetailForm : Form
         var btnSave = new ToolStripButton("💾 Raporu Kaydet (TXT)");
         btnSave.Click += (s, e) => SaveReportToFile();
 
-        _txtSearch = new TextBox { Width = 170, PlaceholderText = "Sensör ara..." };
+        var btnSettings = new ToolStripButton("⚙️ Ayarlar (Yenileme & Sensörler)")
+        {
+            Font = new Font("Segoe UI Semibold", 9f),
+            ForeColor = Color.FromArgb(0, 102, 204)
+        };
+        btnSettings.Click += (s, e) =>
+        {
+            if (_onOpenSettings != null)
+            {
+                _onOpenSettings();
+            }
+            else
+            {
+                using var sf = new SettingsForm(_settings, _hardwareService);
+                sf.ShowDialog(this);
+            }
+        };
+
+        _txtSearch = new TextBox { Width = 150, PlaceholderText = "Sensör ara..." };
         _txtSearch.TextChanged += (s, e) => RestartFilterTimer();
 
         toolStrip.Items.Add(btnReset);
         toolStrip.Items.Add(new ToolStripSeparator());
         toolStrip.Items.Add(btnCopy);
         toolStrip.Items.Add(btnSave);
+        toolStrip.Items.Add(new ToolStripSeparator());
+        toolStrip.Items.Add(btnSettings);
         toolStrip.Items.Add(new ToolStripSeparator());
         toolStrip.Items.Add(new ToolStripLabel("🔍 Filtrele: "));
         toolStrip.Items.Add(new ToolStripControlHost(_txtSearch));

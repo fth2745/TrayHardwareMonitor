@@ -10,6 +10,7 @@ public class AppSettings
 {
     public int BackgroundIntervalMs { get; set; } = 2000;
     public int DetailIntervalMs { get; set; } = 1000;
+    public int HoverDelayMs { get; set; } = 800;
     public bool StartWithWindows { get; set; } = false;
 
     /// <summary>Tepsi simgesinde gösterilecek sensörün kimliği (LHM Identifier). Null ise varsayılan (CPU sıcaklığı).</summary>
@@ -61,6 +62,7 @@ public class AppSettings
                     // Clamp values to sane ranges
                     settings.BackgroundIntervalMs = Math.Clamp(settings.BackgroundIntervalMs, 500, 10000);
                     settings.DetailIntervalMs = Math.Clamp(settings.DetailIntervalMs, 500, 5000);
+                    settings.HoverDelayMs = Math.Clamp(settings.HoverDelayMs, 100, 5000);
                     return settings;
                 }
             }

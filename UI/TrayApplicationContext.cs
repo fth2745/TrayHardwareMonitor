@@ -38,6 +38,7 @@ public class TrayApplicationContext : ApplicationContext
 
         _miniSummaryForm = new MiniSummaryForm();
         _miniSummaryForm.SetDataProvider(GetPinnedSensors);
+        _miniSummaryForm.SetHoverDelay(_settings.HoverDelayMs);
 
         // Context Menu
         _contextMenu = new ContextMenuStrip();
@@ -45,7 +46,7 @@ public class TrayApplicationContext : ApplicationContext
         {
             Font = new Font(_contextMenu.Font, FontStyle.Bold)
         };
-        var menuSettings = new ToolStripMenuItem("⚙️ Ayarlar", null, (s, e) => ShowSettingsForm());
+        var menuSettings = new ToolStripMenuItem("⚙️ Ayarlar (Yenileme & Sensörler)", null, (s, e) => ShowSettingsForm());
         var menuRefresh = new ToolStripMenuItem("🔄 Şimdi Yenile", null, async (s, e) =>
         {
             await _hardwareService.UpdateAllAsync();
@@ -124,6 +125,7 @@ public class TrayApplicationContext : ApplicationContext
     private void OnSettingsChanged()
     {
         _backgroundTimer.Interval = _settings.BackgroundIntervalMs;
+        _miniSummaryForm.SetHoverDelay(_settings.HoverDelayMs);
         RenderAll();
     }
 
@@ -190,7 +192,7 @@ public class TrayApplicationContext : ApplicationContext
     {
         _miniSummaryForm.DismissImmediate();
 
-        _detailForm ??= new DetailForm(_hardwareService, _settings);
+        _detailForm ??= new DetailForm(_hardwareService, _settings, ShowSettingsForm);
 
         if (!_detailForm.Visible)
         {
