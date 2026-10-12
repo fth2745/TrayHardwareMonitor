@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tray Hardware Monitor — Hafif & Canlı Sistem Tepsisi Donanım İzleyici</title>
+  <meta name="description" content="LibreHardwareMonitorLib tabanlı, ultra hafif (<%0.1 CPU, ~25MB RAM), canlı dinamik simgeli ve akıcı animasyonlu modern Windows donanım izleme aracı.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #090b10;
+      --bg-card: #121620;
+      --bg-card-hover: #171d2b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 210, 255, 0.3);
+      --accent: #00d2ff;
+      --accent-grad: linear-gradient(135deg, #00d2ff 0%, #7928ca 100%);
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --green: #46e682;
+      --amber: #ffb923;
+      --red: #ff4b4b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Glow background */
+    .glow-bg {
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(121, 40, 202, 0.1) 40%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(12px);
+      background: rgba(9, 11, 16, 0.8);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: #1c2230;
+      border: 1px solid rgba(70, 230, 130, 0.4);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--green);
+      font-size: 0.95rem;
+      box-shadow: 0 0 12px rgba(70, 230, 130, 0.2);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+    }
+
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-github:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 90px 24px 60px;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(0, 210, 255, 0.08);
+      border: 1px solid rgba(0, 210, 255, 0.25);
+      border-radius: 30px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    .gradient-text {
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-grad);
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3);
+      transition: all 0.25s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(0, 210, 255, 0.45);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 14px 26px;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Interactive Demo Box */
+    .demo-section {
+      max-width: 900px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+
+    .demo-wrapper {
+      background: #11141d;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .demo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .demo-canvas {
+      background: #191c24;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      height: 380px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .demo-instruction {
+      position: absolute;
+      top: 30px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .demo-instruction span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Windows Taskbar Mockup */
+    .taskbar-mockup {
+      width: 100%;
+      height: 52px;
+      background: rgba(18, 20, 26, 0.95);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 20px;
+      gap: 14px;
+      z-index: 10;
+    }
+
+    .taskbar-icon {
+      color: #8b949e;
+      font-size: 1.1rem;
+      cursor: default;
+    }
+
+    /* Dynamic Tray Icon in Demo */
+    .tray-target {
+      width: 28px;
+      height: 28px;
+      background: #1c1f26;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--green);
+      cursor: pointer;
+      border: 1px solid rgba(70, 230, 130, 0.4);
+      box-shadow: 0 0 10px rgba(70, 230, 130, 0.25);
+      transition: all 0.2s;
+    }
+
+    .tray-target:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 14px rgba(70, 230, 130, 0.4);
+    }
+
+    /* Mini Card Mockup */
+    .mini-card-mockup {
+      position: absolute;
+      bottom: 64px;
+      right: 20px;
+      width: 320px;
+      background: #1c1e24;
+      border: 1px solid rgba(60, 68, 85, 0.9);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      border-radius: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.16s ease, visibility 0.16s;
+      z-index: 20;
+      text-align: left;
+    }
+
+    .mini-card-mockup.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .mini-card-bar {
+      height: 3px;
+      background: linear-gradient(90deg, #00b4ff, #785aff);
+      width: 100%;
+    }
+
+    .mini-card-content {
+      padding: 12px 14px 10px;
+    }
+
+    .mini-card-title {
+      color: #00b4ff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mini-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(40, 44, 54, 0.9);
+      font-size: 0.88rem;
+    }
+
+    .mini-card-row:last-child {
+      border-bottom: none;
+    }
+
+    .mini-card-label {
+      color: #d7dce4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 195px;
+    }
+
+    .mini-card-val {
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .val-green { color: var(--green); }
+    .val-blue { color: #64beff; }
+    .val-amber { color: var(--amber); }
+
+    .mini-card-footer {
+      font-size: 0.75rem;
+      color: #828c9b;
+      font-style: italic;
+      margin-top: 10px;
+    }
+
+    /* Modal for Detail Report Demo */
+    .detail-modal {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      height: 80%;
+      background: #f5f6fa;
+      color: #222;
+      border-radius: 8px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      display: none;
+      flex-direction: column;
+      z-index: 50;
+      overflow: hidden;
+      font-size: 0.85rem;
+    }
+
+    .detail-modal.active {
+      display: flex;
+    }
+
+    .modal-bar {
+      background: #fff;
+      padding: 8px 14px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      cursor: pointer;
+      color: #666;
+      font-weight: 700;
+      padding: 4px 8px;
+    }
+
+    .modal-close:hover {
+      color: #000;
+    }
+
+    .modal-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .modal-tree {
+      width: 180px;
+      background: #fff;
+      border-right: 1px solid #ddd;
+      padding: 10px;
+      font-family: monospace;
+      color: #333;
+    }
+
+    .modal-table {
+      flex: 1;
+      background: #fff;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+
+    .modal-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .modal-table th {
+      background: #f0f2f5;
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      font-size: 0.8rem;
+    }
+
+    .modal-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.8rem;
+    }
+
+    /* Features Grid */
+    .features-section {
+      max-width: 1200px;
+      margin: 0 auto 100px;
+      padding: 0 24px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 50px;
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      transition: all 0.25s;
+      position: relative;
+    }
+
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(0, 210, 255, 0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .feature-text {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    /* Specs comparison table */
+    .specs-section {
+      max-width: 900px;
+      margin: 0 auto 100px;
+      padding: 0 24px;
+    }
+
+    .specs-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .specs-table th, .specs-table td {
+      padding: 16px 20px;
+      text-align: left;
+    }
+
+    .specs-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .specs-table td {
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+
+    .specs-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .highlight-cell {
+      color: var(--green);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 50px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2.5rem; }
+      .hero { padding: 60px 20px 40px; }
+      .demo-canvas { height: 320px; }
+      .mini-card-mockup { width: 280px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-bg"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="brand">
+        <div class="brand-icon">49</div>
+        <span>Tray Hardware Monitor</span>
+      </a>
+      <div class="nav-links">
+        <a href="#demo" class="nav-link">Canlı Demo</a>
+        <a href="#features" class="nav-link">Özellikler</a>
+        <a href="#specs" class="nav-link">Performans</a>
+        <a href="https://github.com" target="_blank" class="btn-github">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          GitHub Repo
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="badge-pill">
+      <span>⚡ .NET 8 & LibreHardwareMonitor</span> • <span>Ultra Düşük Tüketim</span>
+    </div>
+    <h1 class="hero-title">
+      Donanımınızı İzlemenin <br>
+      <span class="gradient-text">En Hafif ve Zarif</span> Yolu.
+    </h1>
+    <p class="hero-subtitle">
+      Arka planda neredeyse sıfır CPU (<%0.1) ve sadece ~25 MB RAM harcar. Canlı renkli tepsi simgesi, 0.8 saniye gecikmeli pürüzsüz açılan mini kartı ve HWMonitor tarzı detaylı raporuyla sisteminizi yormadan tam kontrol sağlar.
+    </p>
+
+    <div class="hero-buttons">
+      <a href="#demo" class="btn-primary">
+        <span>🎮 Canlı Demoyu Dene</span>
+      </a>
+      <a href="https://github.com" target="_blank" class="btn-secondary">
+        <span>📦 GitHub'dan İndir</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Interactive Demo -->
+  <section class="demo-section" id="demo">
+    <div class="demo-wrapper">
+      <div class="demo-header">
+        <span>🖥️ Canlı Simülasyon (Tarayıcınızda Deneyin)</span>
+        <span>Windows Görev Çubuğu</span>
+      </div>
+
+      <div class="demo-canvas">
+        <div class="demo-instruction">
+          Yeşil <b style="color:#46e682;">49</b> simgesinin <span>üstüne gelin (0.8s bekleyin)</span> veya <span>tıklayın</span>!
+        </div>
+
+        <!-- Mini Card Mockup -->
+        <div class="mini-card-mockup" id="miniCard">
+          <div class="mini-card-bar"></div>
+          <div class="mini-card-content">
+            <div class="mini-card-title">⚡ Sistem Özeti</div>
+            
+            <div class="mini-card-row">
+              <span class="mini-card-label">CPU · Core (Tctl/Tdie)</span>
+              <span class="mini-card-val val-green">49 °C</span>
+            </div>
+            <div class="mini-card-row">
+              <span class="mini-card-label">CPU Total</span>
+              <span class="mini-card-val val-green">%1</span>
+            </div>
+            <div class="mini-card-row">
+              <span class="mini-card-label">GPU Core</span>
+              <span class="mini-card-val val-green">34 °C</span>
+            </div>
+            <div class="mini-card-row">
+              <span class="mini-card-label">GPU Memory Used</span>
+              <span class="mini-card-val val-blue">1,3 GB</span>
+            </div>
+            <div class="mini-card-row">
+              <span class="mini-card-label">RAM · Memory</span>
+              <span class="mini-card-val val-green">%43</span>
+            </div>
+            <div class="mini-card-row">
+              <span class="mini-card-label">RAM · Memory Used</span>
+              <span class="mini-card-val val-blue">14,5 GB</span>
+            </div>
+            <div class="mini-card-row">
+              <span class="mini-card-label">NVMe SSD · Composite Temp</span>
+              <span class="mini-card-val val-green">32 °C</span>
+            </div>
+
+            <div class="mini-card-footer">Detaylı rapor için simgeye tıklayın</div>
+          </div>
+        </div>
+
+        <!-- Detail Modal Mockup -->
+        <div class="detail-modal" id="detailModal">
+          <div class="modal-bar">
+            <span>Tray Hardware Monitor - Detaylı Donanım Raporu</span>
+            <span class="modal-close" id="modalClose">✕</span>
+          </div>
+          <div class="modal-body">
+            <div class="modal-tree">
+              <b>🖥️ Tüm Donanım</b><br>
+              &nbsp;⚡ AMD Ryzen 7<br>
+              &nbsp;🎮 RTX 4070<br>
+              &nbsp;🧠 32GB DDR5<br>
+              &nbsp;💾 Samsung NVMe
+            </div>
+            <div class="modal-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sensör</th>
+                    <th>Tür</th>
+                    <th>Değer</th>
+                    <th>Min</th>
+                    <th>Maks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>📌 CPU Package</td>
+                    <td>Sıcaklık</td>
+                    <td>49.2 °C</td>
+                    <td>42.0 °C</td>
+                    <td>71.5 °C</td>
+                  </tr>
+                  <tr>
+                    <td>⭐ CPU Total</td>
+                    <td>Yük</td>
+                    <td>%1.4</td>
+                    <td>%0.0</td>
+                    <td>%98.0</td>
+                  </tr>
+                  <tr>
+                    <td>⭐ GPU Core</td>
+                    <td>Sıcaklık</td>
+                    <td>34.0 °C</td>
+                    <td>31.0 °C</td>
+                    <td>64.0 °C</td>
+                  </tr>
+                  <tr>
+                    <td>⭐ Memory Load</td>
+                    <td>Yük</td>
+                    <td>%43.1</td>
+                    <td>%38.0</td>
+                    <td>%52.0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Taskbar -->
+        <div class="taskbar-mockup">
+          <div class="taskbar-icon">⌃</div>
+          <div class="tray-target" id="trayIcon" title="Tray Hardware Monitor">49</div>
+          <div class="taskbar-icon">🔄</div>
+          <div class="taskbar-icon">📶</div>
+          <div class="taskbar-icon">🔊</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="features-section" id="features">
+    <h2 class="section-title">Neden Tray Hardware Monitor?</h2>
+    <p class="section-desc">Hafiflik, zarafet ve tam kontrol için sıfırdan optimize edildi.</p>
+
+    <div class="grid-cards">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3 class="feature-title">Dinamik Canlı İkon</h3>
+        <p class="feature-text">
+          Tepside sabit simge yerine seçtiğiniz sensörün anlık değerini renk kodlu rakamla (yeşil: serin, turuncu: sıcak, kırmızı: kritik) canlı çizer.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <h3 class="feature-title">Akıcı Hover Animasyonu</h3>
+        <p class="feature-text">
+          Windows varsayılanı gibi 0.8 sn bekleme süresiyle yanlışlıkla açılmaları önler; açılırken ve kapanırken pürüzsüzce solarak (fade in / fade out) kaybolur.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⭐</div>
+        <h3 class="feature-title">Tamamen Özelleştirilebilir</h3>
+        <p class="feature-text">
+          Detaylı raporda dilediğiniz sensöre sağ tıklayarak tepsi simgesi yapabilir veya mini özet kartına tek tıkla ekleyip çıkarabilirsiniz.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">60 FPS Donmasız UI</h3>
+        <p class="feature-text">
+          Donanım taraması tamamen arka plan iş parçacığında çalışır. Arayüz asla kilitlenmez veya takılmaz, sütunlar pencereye göre otomatik orantılanır.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3 class="feature-title">Sessiz UAC Başlangıcı</h3>
+        <p class="feature-text">
+          Windows Görev Zamanlayıcı entegrasyonu sayesinde, CPU sıcaklıklarını okumak için gerekli yönetici iznine rağmen her açılışta UAC onay kutusu sormadan başlar.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🍃</div>
+        <h3 class="feature-title">Görünmez Kaynak Tüketimi</h3>
+        <p class="feature-text">
+          Arka planda yalnızca seçtiğiniz özet sensörleri günceller. CPU tüketimi <%0.1, RAM tüketimi ~25 MB seviyesinde kalır.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Performance Comparison -->
+  <section class="specs-section" id="specs">
+    <h2 class="section-title">Performans Karşılaştırması</h2>
+    <p class="section-desc">Gereksiz ağırlıklardan arındırılmış saf performans.</p>
+
+    <table class="specs-table">
+      <thead>
+        <tr>
+          <th>Özellik</th>
+          <th>Tray Hardware Monitor</th>
+          <th>Geleneksel Araçlar (AIDA64 / HWMonitor)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arka Plan CPU Kullanımı</td>
+          <td class="highlight-cell">< %0.1</td>
+          <td>%0.5 – %2.0</td>
+        </tr>
+        <tr>
+          <td>Bellek (RAM) Tüketimi</td>
+          <td class="highlight-cell">~25 - 30 MB</td>
+          <td>80 - 200 MB</td>
+        </tr>
+        <tr>
+          <td>Tepsi İkonu</td>
+          <td class="highlight-cell">Canlı Dinamik Rakam</td>
+          <td>Sabit Simge / Hantal</td>
+        </tr>
+        <tr>
+          <td>Hover Açılış / Kapanış</td>
+          <td class="highlight-cell">0.8s Gecikme + Solma Animasyonu</td>
+          <td>Standart Düz Tooltip veya Yok</td>
+        </tr>
+        <tr>
+          <td>Windows Başlangıç UAC</td>
+          <td class="highlight-cell">Sessiz (Görev Zamanlayıcı)</td>
+          <td>Her Açılışta UAC Uyarısı</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      <b>Tray Hardware Monitor</b> — Açık kaynaklı, hafif sistem izleme aracı.<br>
+      MIT Lisansı ile korunmaktadır. <a href="https://github.com" target="_blank">GitHub Proje Sayfası</a>
+    </p>
+  </footer>
+
+  <!-- Interactive Demo Script -->
+  <script>
+    const trayIcon = document.getElementById('trayIcon');
+    const miniCard = document.getElementById('miniCard');
+    const detailModal = document.getElementById('detailModal');
+    const modalClose = document.getElementById('modalClose');
+
+    let hoverTimer = null;
+
+    // Hover delay (0.8s) + fade
+    trayIcon.addEventListener('mouseenter', () => {
+      hoverTimer = setTimeout(() => {
+        miniCard.classList.add('visible');
+      }, 800);
+    });
+
+    trayIcon.addEventListener('mouseleave', () => {
+      clearTimeout(hoverTimer);
+      // Wait slight buffer so moving into card works
+      setTimeout(() => {
+        if (!miniCard.matches(':hover') && !trayIcon.matches(':hover')) {
+          miniCard.classList.remove('visible');
+        }
+      }, 50);
+    });
+
+    miniCard.addEventListener('mouseleave', () => {
+      miniCard.classList.remove('visible');
+    });
+
+    // Click to open Detail Report Modal
+    trayIcon.addEventListener('click', () => {
+      miniCard.classList.remove('visible');
+      clearTimeout(hoverTimer);
+      detailModal.classList.add('active');
+    });
+
+    modalClose.addEventListener('click', () => {
+      detailModal.classList.remove('active');
+    });
+  </script>
+</body>
+</html>

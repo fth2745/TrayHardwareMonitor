@@ -1,0 +1,22 @@
+## Build & Binaries
+bin/
+obj/
+publish/
+publish_v2/
+
+## User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio & IDEs
+.vs/
+.idea/
+.vscode/
+
+## Desktop Shortcuts & Temporary files
+*.lnk
+*.tmp
+*.log
+*.zip
