@@ -65,3 +65,4 @@ dotnet publish -c Release -r win-x64 --no-self-contained -o ./publish
 ## 📄 Lisans
 Bu proje [MIT Lisansı](LICENSE) kapsamında açık kaynaklı olarak paylaşılmıştır.
 `LibreHardwareMonitorLib` kütüphanesine dayanmaktadır.
+
