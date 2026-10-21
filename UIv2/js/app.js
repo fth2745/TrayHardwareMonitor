@@ -29,16 +29,16 @@ const SKEL_MIGRATION = {
 };
 
 const state = {
-  mode: 'live',              // 'live' | 'catalog'
+  mode: 'live',              // 'live'
   theme: 'T-bento',          // 'T-bento' | 'T-neon' | 'T-minimal' | 'T-light' | 'T-violet'
-  layout: 'bento',           // 'bento' | 'g1-stage'
-  windowSec: 60,             // 60 | 300 | 900
-  catalogGroup: 'ALL',       // 'ALL' | 'REF-1' | 'REF-2' | 'REF-3' | 'REF-4' | 'EXTRA' | 'UI-HELPERS'
-  drawerTab: 'active-cards', // 'active-cards' | 'add-sensor'
-  targetCardForSensorPick: null, // Sensör ataması yapılan kart id'si
-  widgets: [],               // [{ id, sensorId, secondarySensorIds, chartCode, skeleton, span }]
-  sensorMap: new Map(),      // sensorId -> son okunan DTO
-  historyMap: new Map()      // sensorId -> number[]
+  layout: 'cols-2',          // 'cols-1' | 'cols-2' | 'cols-3' | 'cols-4'
+  windowSec: 300,            // Sabit 5 dakika
+  catalogGroup: 'ALL',
+  drawerTab: 'active-cards',
+  targetCardForSensorPick: null,
+  widgets: buildDefaultWidgetsFromSensors([]), // 6 Sabit Kart varsayılan olarak daima yüklüdür
+  sensorMap: new Map(),
+  historyMap: new Map()
 };
 
 const cardDomMap = new Map();
@@ -72,16 +72,24 @@ function normalizeSavedConfig(cfg) {
   if (cfg.theme) {
     state.theme = THEME_MIGRATION[cfg.theme] || cfg.theme;
   }
-  if (cfg.layout) state.layout = cfg.layout;
-  if (cfg.windowSec) state.windowSec = Number(cfg.windowSec) || 60;
-  if (Array.isArray(cfg.widgets)) {
-    state.widgets = cfg.widgets.map(w => ({
-      ...w,
-      chartCode: normalizeChartCode(w.chartCode),
-      m1Variant: w.m1Variant || 'hybrid',
-      skeleton: SKEL_MIGRATION[w.skeleton] || w.skeleton || 'S-bento',
-      secondarySensorIds: Array.isArray(w.secondarySensorIds) ? w.secondarySensorIds : []
-    }));
+  if (cfg.layout) {
+    state.layout = (cfg.layout === 'cols-3') ? 'cols-3' : 'cols-2';
+  }
+  state.windowSec = 300; // Sabit 5 dakika arka plan penceresi
+
+  // 6 Sabit Kartı temel al, kayıtlı varyant ve aktiflik tercihlerini birleştir
+  const defaults = buildDefaultWidgetsFromSensors(Array.from(state.sensorMap.values()));
+  if (Array.isArray(cfg.widgets) && cfg.widgets.length > 0) {
+    state.widgets = defaults.map(def => {
+      const saved = cfg.widgets.find(w => w.id === def.id || w.cardType === def.cardType);
+      return {
+        ...def,
+        m1Variant: saved?.m1Variant || def.m1Variant,
+        enabled: saved?.enabled !== false
+      };
+    });
+  } else {
+    state.widgets = defaults;
   }
 }
 
@@ -96,18 +104,10 @@ function persistState() {
 }
 
 function updateDynamicBadges() {
-  const btnLive = document.getElementById('btnTabLive');
-  const btnCat = document.getElementById('btnTabCatalog');
   const btnDrawerActive = document.getElementById('btnDrawerActiveTab');
-
-  if (btnLive) {
-    btnLive.textContent = `Canlı Panel (${state.widgets.length} Kart)`;
-  }
-  if (btnCat) {
-    btnCat.textContent = `Katalog (${CHART_POOL.length} Grafik + ${UI_HELPER_POOL.length} Bileşen)`;
-  }
   if (btnDrawerActive) {
-    btnDrawerActive.textContent = `Aktif Kartlarım (${state.widgets.length})`;
+    const activeCount = state.widgets.filter(w => w.enabled !== false).length;
+    btnDrawerActive.textContent = `Sabit Paneller (${activeCount} / ${state.widgets.length})`;
   }
 }
 
@@ -117,27 +117,27 @@ function parseUnit(formatted) {
   return parts.length > 1 ? parts[parts.length - 1] : '';
 }
 
-function buildLiveMatrixRows(s, allSensors) {
-  const isCpu = (s.name && s.name.includes('CPU')) ||
-                (s.hardware && (s.hardware.includes('Ryzen') || s.hardware.includes('CPU') || s.hardware.includes('Intel')));
-
-  if (isCpu) {
-    const tempSens = s.type === 'Sıcaklık' ? s : allSensors.find(x => x.hardware === s.hardware && x.type === 'Sıcaklık');
+function buildLiveMatrixRows(cardType, primarySensor, allSensors) {
+  // 1. CPU (DRAM BİLGİLERİ TAMAMEN KALDIRILDI)
+  if (cardType === 'cpu') {
+    const tempSens = (primarySensor && primarySensor.type === 'Sıcaklık')
+      ? primarySensor
+      : allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'));
     const tVal = tempSens?.value ?? 48;
 
-    const clockSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware === s.hardware) && (x.type === 'Saat' || x.type === 'Frekans') && (x.name.includes('Core #1') || x.name.includes('Average') || x.name.includes('Max')))
-      || allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware === s.hardware) && (x.type === 'Saat' || x.type === 'Frekans'));
+    const clockSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && (x.type === 'Saat' || x.type === 'Frekans') && (x.name.includes('Core #1') || x.name.includes('Average') || x.name.includes('Max')))
+      || allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && (x.type === 'Saat' || x.type === 'Frekans'));
     const cMhz = clockSens?.value ?? 4850;
     const cGhz = (cMhz / 1000).toFixed(2);
+
+    const powerSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç' && (x.name.includes('Package') || x.name.includes('Total') || x.name.includes('Power')));
+    const pVal = powerSens?.value ?? 95;
 
     const voltSens = allSensors.find(x => (x.type === 'Voltaj' || x.type === 'Voltage') && (x.name === 'Vcore' || x.name.includes('VID') || x.name.includes('Core')));
     const vVal = voltSens?.value ?? 1.38;
 
-    const dimm1Sens = allSensors.find(x => (x.hardware.includes('AX5U6000') || x.hardware.includes('DIMM') || x.name.includes('DIMM #1')) && x.type === 'Sıcaklık' && (x.name === 'DIMM #1' || !x.name.includes('Limit')));
-    const d1Val = dimm1Sens?.value ?? 28.2;
-
-    const dimm2Sens = allSensors.find(x => (x.hardware.includes('AX5U6000') || x.hardware.includes('DIMM') || x.name.includes('DIMM #3') || x.name.includes('DIMM #2')) && x.type === 'Sıcaklık' && (x.name === 'DIMM #3' || x.name === 'DIMM #2') && x.id !== dimm1Sens?.id);
-    const d2Val = dimm2Sens?.value ?? 32.5;
+    const loadSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Yük' && (x.name.includes('Total') || x.name.includes('Package') || x.name.includes('Core')));
+    const lVal = loadSens?.value ?? 18;
 
     return [
       {
@@ -148,222 +148,533 @@ function buildLiveMatrixRows(s, allSensors) {
         pct: Math.min(100, Math.max(10, ((tVal - 25) / 65) * 100)),
         color: tVal > 80 ? 'var(--accent-red)' : tVal > 68 ? 'var(--accent-amber)' : 'linear-gradient(90deg, #3B82F6, #6366F1)',
         valColor: tVal > 80 ? 'var(--accent-red)' : 'var(--text-primary)',
+        minFormatted: tempSens?.formattedMin || `${(tVal - 3).toFixed(1)} °C`,
         avgFormatted: tempSens?.formattedAvg || '-',
         maxFormatted: tempSens?.formattedMax || '-'
       },
       {
         icon: '⚡',
-        label: 'İşlemci Hızı (GHz)',
+        label: 'İşlemci Hızı',
         value: cMhz,
         formattedValue: `${cGhz} GHz`,
         pct: Math.min(100, Math.max(15, (cMhz / 5700) * 100)),
         color: 'linear-gradient(90deg, #8B5CF6, #A855F7)',
         badge: cMhz > 5000 ? 'Boost' : '',
         badgeCls: 'up',
+        minFormatted: clockSens?.formattedMin || `${(cMhz * 0.7 / 1000).toFixed(2)} GHz`,
         avgFormatted: clockSens?.formattedAvg || '-',
         maxFormatted: clockSens?.formattedMax || '-'
       },
       {
+        icon: '🔌',
+        label: 'Package Gücü',
+        value: pVal,
+        formattedValue: `${pVal.toFixed(1)} W`,
+        pct: Math.min(100, Math.max(10, (pVal / 230) * 100)),
+        color: 'linear-gradient(90deg, #F59E0B, #EF4444)',
+        minFormatted: powerSens?.formattedMin || `${(pVal * 0.5).toFixed(1)} W`,
+        avgFormatted: powerSens?.formattedAvg || '-',
+        maxFormatted: powerSens?.formattedMax || '-'
+      },
+      {
         icon: '🔋',
-        label: 'Çekirdek Voltajı',
+        label: 'Çekirdek Voltajı (Vcore)',
         value: vVal,
         formattedValue: `${vVal.toFixed(3)} V`,
         pct: Math.min(100, Math.max(15, (vVal / 1.5) * 100)),
         color: 'linear-gradient(90deg, #06B6D4, #3B82F6)',
+        minFormatted: voltSens?.formattedMin || `${(vVal * 0.85).toFixed(3)} V`,
         avgFormatted: voltSens?.formattedAvg || '-',
         maxFormatted: voltSens?.formattedMax || '-'
       },
       {
-        icon: '🧠',
-        label: 'DIMM 1 Sıcaklığı',
-        value: d1Val,
-        formattedValue: `${d1Val.toFixed(1)} °C`,
-        pct: Math.min(100, Math.max(10, ((d1Val - 20) / 45) * 100)),
-        color: d1Val > 55 ? 'var(--accent-red)' : 'linear-gradient(90deg, #10B981, #06B6D4)',
-        avgFormatted: dimm1Sens?.formattedAvg || '-',
-        maxFormatted: dimm1Sens?.formattedMax || '-'
-      },
-      {
-        icon: '🧠',
-        label: 'DIMM 2 Sıcaklığı',
-        value: d2Val,
-        formattedValue: `${d2Val.toFixed(1)} °C`,
-        pct: Math.min(100, Math.max(10, ((d2Val - 20) / 45) * 100)),
-        color: d2Val > 55 ? 'var(--accent-red)' : 'linear-gradient(90deg, #10B981, #06B6D4)',
-        avgFormatted: dimm2Sens?.formattedAvg || '-',
-        maxFormatted: dimm2Sens?.formattedMax || '-'
+        icon: '📊',
+        label: 'Toplam İşlemci Yükü',
+        value: lVal,
+        formattedValue: `%${lVal.toFixed(1)}`,
+        pct: Math.min(100, Math.max(4, lVal)),
+        color: 'linear-gradient(90deg, #10B981, #06B6D4)',
+        minFormatted: loadSens?.formattedMin || `%${(Math.max(0, lVal - 10)).toFixed(1)}`,
+        avgFormatted: loadSens?.formattedAvg || '-',
+        maxFormatted: loadSens?.formattedMax || '-'
       }
     ];
   }
 
-  // GPU
-  const gpuTempSens = s.type === 'Sıcaklık' ? s : allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'));
-  const gtVal = gpuTempSens?.value ?? 34;
+  // 2. GPU
+  if (cardType === 'gpu') {
+    const gpuTempSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'));
+    const gtVal = gpuTempSens?.value ?? 34;
 
-  const gpuLoadSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Yük' && x.name.includes('Core'));
-  const glVal = gpuLoadSens?.value ?? 12;
+    const gpuLoadSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Yük' && x.name.includes('Core'));
+    const glVal = gpuLoadSens?.value ?? 12;
 
-  const gpuPowerSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
-  const gpVal = gpuPowerSens?.value ?? 45;
+    const gpuPowerSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
+    const gpVal = gpuPowerSens?.value ?? 45;
 
-  const gpuClockSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && (x.type === 'Saat' || x.type === 'Frekans') && x.name.includes('Core'));
-  const gcVal = gpuClockSens?.value ?? 1125;
+    const gpuClockSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && (x.type === 'Saat' || x.type === 'Frekans') && x.name.includes('Core'));
+    const gcVal = gpuClockSens?.value ?? 1125;
 
-  const gpuVoltSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && (x.type === 'Voltaj' || x.type === 'Voltage'));
-  const gvVal = gpuVoltSens?.value ?? 0.88;
+    const gpuVoltSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && (x.type === 'Voltaj' || x.type === 'Voltage'));
+    const gvVal = gpuVoltSens?.value ?? 0.88;
 
+    return [
+      {
+        icon: '🌡️',
+        label: 'GPU Sıcaklığı',
+        value: gtVal,
+        formattedValue: `${gtVal.toFixed(1)} °C`,
+        pct: Math.min(100, Math.max(10, ((gtVal - 25) / 65) * 100)),
+        color: gtVal > 78 ? 'var(--accent-red)' : gtVal > 65 ? 'var(--accent-amber)' : 'linear-gradient(90deg, #10B981, #06B6D4)',
+        valColor: gtVal > 78 ? 'var(--accent-red)' : 'var(--text-primary)',
+        minFormatted: gpuTempSens?.formattedMin || `${(gtVal - 2).toFixed(1)} °C`,
+        avgFormatted: gpuTempSens?.formattedAvg || '-',
+        maxFormatted: gpuTempSens?.formattedMax || '-'
+      },
+      {
+        icon: '📊',
+        label: 'GPU Kullanımı (Yük)',
+        value: glVal,
+        formattedValue: `%${glVal.toFixed(1)}`,
+        pct: Math.min(100, Math.max(4, glVal)),
+        color: 'linear-gradient(90deg, #3B82F6, #6366F1)',
+        minFormatted: gpuLoadSens?.formattedMin || `%${(Math.max(0, glVal - 8)).toFixed(1)}`,
+        avgFormatted: gpuLoadSens?.formattedAvg || '-',
+        maxFormatted: gpuLoadSens?.formattedMax || '-'
+      },
+      {
+        icon: '⚡',
+        label: 'Güç Tüketimi (Watt)',
+        value: gpVal,
+        formattedValue: `${gpVal.toFixed(1)} W`,
+        pct: Math.min(100, Math.max(5, (gpVal / 380) * 100)),
+        color: 'linear-gradient(90deg, #F59E0B, #EF4444)',
+        minFormatted: gpuPowerSens?.formattedMin || `${(gpVal * 0.4).toFixed(1)} W`,
+        avgFormatted: gpuPowerSens?.formattedAvg || '-',
+        maxFormatted: gpuPowerSens?.formattedMax || '-'
+      },
+      {
+        icon: '⏱️',
+        label: 'Çekirdek Frekansı',
+        value: gcVal,
+        formattedValue: `${Math.round(gcVal)} MHz`,
+        pct: Math.min(100, Math.max(10, (gcVal / 3000) * 100)),
+        color: 'linear-gradient(90deg, #8B5CF6, #EC4899)',
+        minFormatted: gpuClockSens?.formattedMin || `${Math.round(gcVal * 0.5)} MHz`,
+        avgFormatted: gpuClockSens?.formattedAvg || '-',
+        maxFormatted: gpuClockSens?.formattedMax || '-'
+      },
+      {
+        icon: '🔋',
+        label: 'GPU Voltajı',
+        value: gvVal,
+        formattedValue: `${gvVal.toFixed(3)} V`,
+        pct: Math.min(100, Math.max(10, (gvVal / 1.15) * 100)),
+        color: 'linear-gradient(90deg, #06B6D4, #3B82F6)',
+        minFormatted: gpuVoltSens?.formattedMin || `${(gvVal * 0.9).toFixed(3)} V`,
+        avgFormatted: gpuVoltSens?.formattedAvg || '-',
+        maxFormatted: gpuVoltSens?.formattedMax || '-'
+      }
+    ];
+  }
+
+  // 3. RAM (Bellek - Yeni Bağımsız Kart)
+  if (cardType === 'ram') {
+    const memLoadSens = allSensors.find(x => x.hardware.includes('Total Memory') && x.type === 'Yük');
+    const mlVal = memLoadSens?.value ?? 38;
+
+    const memUsedSens = allSensors.find(x => x.hardware.includes('Total Memory') && (x.name.includes('Used') || x.name.includes('Kullanılan')));
+    const muVal = memUsedSens?.value ?? 12.2;
+
+    const memAvailSens = allSensors.find(x => x.hardware.includes('Total Memory') && (x.name.includes('Available') || x.name.includes('Boş') || x.name.includes('Kalan')));
+    const maVal = memAvailSens?.value ?? 19.8;
+
+    // Yalnızca gerçek "DIMM #1", "DIMM #3" sıcaklık sensörlerini al (Resolution / Limit gibi yan sensörleri dışla)
+    const isDimmTemp = (x) => (x.type === 'Sıcaklık' || x.type === 'Temperature') && /^DIMM #\d+$/i.test(String(x.name || '').trim());
+    const dimmSensors = allSensors.filter(isDimmTemp);
+    const dimm1 = dimmSensors[0] || allSensors.find(x => x.name?.includes('DIMM #1') && (x.type === 'Sıcaklık' || x.type === 'Temperature'));
+    const dimm2 = dimmSensors.find(x => x.id !== dimm1?.id) || allSensors.find(x => (x.name?.includes('DIMM #3') || x.name?.includes('DIMM #2')) && x.id !== dimm1?.id && (x.type === 'Sıcaklık' || x.type === 'Temperature'));
+
+    const d1Val = dimm1?.value ?? 33.5;
+    const d2Val = dimm2?.value ?? 32.8;
+
+    return [
+      {
+        icon: '🧠',
+        label: 'Bellek Kullanım Oranı',
+        value: mlVal,
+        formattedValue: `%${mlVal.toFixed(1)}`,
+        pct: Math.min(100, Math.max(5, mlVal)),
+        color: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+        minFormatted: memLoadSens?.formattedMin || `%${(Math.max(5, mlVal - 5)).toFixed(1)}`,
+        avgFormatted: memLoadSens?.formattedAvg || '-',
+        maxFormatted: memLoadSens?.formattedMax || '-'
+      },
+      {
+        icon: '📦',
+        label: 'Kullanılan Bellek',
+        value: muVal,
+        formattedValue: memUsedSens?.formattedValue || `${muVal.toFixed(1)} GB`,
+        pct: Math.min(100, Math.max(10, (muVal / 32) * 100)),
+        color: 'linear-gradient(90deg, #6366F1, #A855F7)',
+        minFormatted: memUsedSens?.formattedMin || `${(muVal * 0.8).toFixed(1)} GB`,
+        avgFormatted: memUsedSens?.formattedAvg || '-',
+        maxFormatted: memUsedSens?.formattedMax || '-'
+      },
+      {
+        icon: '🍃',
+        label: 'Kullanılabilir (Boş) Bellek',
+        value: maVal,
+        formattedValue: memAvailSens?.formattedValue || `${maVal.toFixed(1)} GB`,
+        pct: Math.min(100, Math.max(10, (maVal / 32) * 100)),
+        color: 'linear-gradient(90deg, #10B981, #06B6D4)',
+        minFormatted: memAvailSens?.formattedMin || `${(maVal * 0.9).toFixed(1)} GB`,
+        avgFormatted: memAvailSens?.formattedAvg || '-',
+        maxFormatted: memAvailSens?.formattedMax || '-'
+      },
+      {
+        icon: '🌡️',
+        label: 'DIMM 1 Sıcaklığı (Slot #1)',
+        value: d1Val,
+        formattedValue: `${d1Val.toFixed(1)} °C`,
+        pct: Math.min(100, Math.max(10, ((d1Val - 20) / 45) * 100)),
+        color: d1Val > 55 ? 'var(--accent-red)' : 'linear-gradient(90deg, #10B981, #06B6D4)',
+        minFormatted: dimm1?.formattedMin || `${(d1Val - 1.5).toFixed(1)} °C`,
+        avgFormatted: dimm1?.formattedAvg || '-',
+        maxFormatted: dimm1?.formattedMax || '-'
+      },
+      {
+        icon: '🌡️',
+        label: 'DIMM 2 Sıcaklığı (Slot #3)',
+        value: d2Val,
+        formattedValue: `${d2Val.toFixed(1)} °C`,
+        pct: Math.min(100, Math.max(10, ((d2Val - 20) / 45) * 100)),
+        color: d2Val > 55 ? 'var(--accent-red)' : 'linear-gradient(90deg, #10B981, #06B6D4)',
+        minFormatted: dimm2?.formattedMin || `${(d2Val - 1.5).toFixed(1)} °C`,
+        avgFormatted: dimm2?.formattedAvg || '-',
+        maxFormatted: dimm2?.formattedMax || '-'
+      }
+    ];
+  }
+
+  // 4. Anakart (Motherboard)
+  if (cardType === 'board') {
+    const t1 = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'Temperature #1');
+    const t2 = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'Temperature #2');
+    const v33 = allSensors.find(x => x.hardware.includes('NCT') && x.name === '+3.3V');
+    const vavcc = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'AVCC');
+    const vstandby = allSensors.find(x => x.hardware.includes('NCT') && x.name === '+3V Standby');
+
+    const v1Val = t1?.value ?? 32.5;
+    const v2Val = t2?.value ?? 28.0;
+    const v33Val = v33?.value ?? 3.312;
+    const avccVal = vavcc?.value ?? 3.392;
+    const stbVal = vstandby?.value ?? 3.392;
+
+    return [
+      {
+        icon: '🌡️',
+        label: 'Sistem Sıcaklığı (VRM)',
+        value: v1Val,
+        formattedValue: `${v1Val.toFixed(1)} °C`,
+        pct: Math.min(100, Math.max(10, (v1Val / 85) * 100)),
+        color: 'linear-gradient(90deg, #10B981, #3B82F6)',
+        minFormatted: t1?.formattedMin || `${(v1Val - 2).toFixed(1)} °C`,
+        avgFormatted: t1?.formattedAvg || '-',
+        maxFormatted: t1?.formattedMax || '-'
+      },
+      {
+        icon: '🌡️',
+        label: 'Yonga Seti Sıcaklığı',
+        value: v2Val,
+        formattedValue: `${v2Val.toFixed(1)} °C`,
+        pct: Math.min(100, Math.max(10, (v2Val / 85) * 100)),
+        color: 'linear-gradient(90deg, #06B6D4, #6366F1)',
+        minFormatted: t2?.formattedMin || `${(v2Val - 1.5).toFixed(1)} °C`,
+        avgFormatted: t2?.formattedAvg || '-',
+        maxFormatted: t2?.formattedMax || '-'
+      },
+      {
+        icon: '⚡',
+        label: '+3.3V Voltaj Hattı',
+        value: v33Val,
+        formattedValue: `${v33Val.toFixed(3)} V`,
+        pct: Math.min(100, Math.max(20, (v33Val / 3.6) * 100)),
+        color: 'linear-gradient(90deg, #8B5CF6, #A855F7)',
+        minFormatted: v33?.formattedMin || `${(v33Val * 0.98).toFixed(3)} V`,
+        avgFormatted: v33?.formattedAvg || '-',
+        maxFormatted: v33?.formattedMax || '-'
+      },
+      {
+        icon: '🔋',
+        label: 'AVCC Giriş Voltajı',
+        value: avccVal,
+        formattedValue: `${avccVal.toFixed(3)} V`,
+        pct: Math.min(100, Math.max(20, (avccVal / 3.6) * 100)),
+        color: 'linear-gradient(90deg, #3B82F6, #06B6D4)',
+        minFormatted: vavcc?.formattedMin || `${(avccVal * 0.98).toFixed(3)} V`,
+        avgFormatted: vavcc?.formattedAvg || '-',
+        maxFormatted: vavcc?.formattedMax || '-'
+      },
+      {
+        icon: '🛡️',
+        label: '+3V Standby Rayı',
+        value: stbVal,
+        formattedValue: `${stbVal.toFixed(3)} V`,
+        pct: Math.min(100, Math.max(20, (stbVal / 3.6) * 100)),
+        color: 'linear-gradient(90deg, #10B981, #8B5CF6)',
+        minFormatted: vstandby?.formattedMin || `${(stbVal * 0.98).toFixed(3)} V`,
+        avgFormatted: vstandby?.formattedAvg || '-',
+        maxFormatted: vstandby?.formattedMax || '-'
+      }
+    ];
+  }
+
+  // 5. PSU (Güç Kaynağı - Tahmini Sistem Gücü)
+  if (cardType === 'psu') {
+    const cpuP = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç');
+    const gpuP = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
+    const v33 = allSensors.find(x => x.hardware.includes('NCT') && x.name === '+3.3V');
+    const term = allSensors.find(x => x.hardware.includes('NCT') && x.name.includes('Termination'));
+
+    const cpVal = cpuP?.value ?? 65;
+    const gpVal = gpuP?.value ?? 45;
+    const totalEstWatt = cpVal + gpVal;
+    const cpMin = cpuP?.min ?? (cpVal * 0.4);
+    const gpMin = gpuP?.min ?? (gpVal * 0.3);
+    const cpAvg = cpuP?.avg ?? cpVal;
+    const gpAvg = gpuP?.avg ?? gpVal;
+    const cpMax = cpuP?.max ?? (cpVal * 1.4);
+    const gpMax = gpuP?.max ?? (gpVal * 2.2);
+
+    const v33Val = v33?.value ?? 3.312;
+    const termVal = term?.value ?? 1.656;
+
+    return [
+      {
+        icon: '⚡',
+        label: 'Tahmini Sistem Gücü',
+        value: totalEstWatt,
+        formattedValue: `~${totalEstWatt.toFixed(1)} W`,
+        pct: Math.min(100, Math.max(10, (totalEstWatt / 650) * 100)),
+        color: 'linear-gradient(90deg, #F59E0B, #EF4444)',
+        badge: 'Tahmini',
+        badgeCls: 'warn',
+        minFormatted: `~${(cpMin + gpMin).toFixed(0)} W`,
+        avgFormatted: `~${(cpAvg + gpAvg).toFixed(0)} W`,
+        maxFormatted: `~${(cpMax + gpMax).toFixed(0)} W`
+      },
+      {
+        icon: '🖥️',
+        label: 'İşlemci Güç Çekimi',
+        value: cpVal,
+        formattedValue: `${cpVal.toFixed(1)} W`,
+        pct: Math.min(100, Math.max(8, (cpVal / 230) * 100)),
+        color: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+        minFormatted: cpuP?.formattedMin || `${(cpVal * 0.4).toFixed(1)} W`,
+        avgFormatted: cpuP?.formattedAvg || '-',
+        maxFormatted: cpuP?.formattedMax || '-'
+      },
+      {
+        icon: '🎮',
+        label: 'Ekran Kartı Güç Çekimi',
+        value: gpVal,
+        formattedValue: `${gpVal.toFixed(1)} W`,
+        pct: Math.min(100, Math.max(8, (gpVal / 380) * 100)),
+        color: 'linear-gradient(90deg, #8B5CF6, #EC4899)',
+        minFormatted: gpuP?.formattedMin || `${(gpVal * 0.3).toFixed(1)} W`,
+        avgFormatted: gpuP?.formattedAvg || '-',
+        maxFormatted: gpuP?.formattedMax || '-'
+      },
+      {
+        icon: '🔋',
+        label: '+3.3V Ray Gerilimi',
+        value: v33Val,
+        formattedValue: `${v33Val.toFixed(3)} V`,
+        pct: Math.min(100, Math.max(20, (v33Val / 3.6) * 100)),
+        color: 'linear-gradient(90deg, #10B981, #06B6D4)',
+        minFormatted: v33?.formattedMin || `${(v33Val * 0.98).toFixed(3)} V`,
+        avgFormatted: v33?.formattedAvg || '-',
+        maxFormatted: v33?.formattedMax || '-'
+      },
+      {
+        icon: '🛡️',
+        label: 'CPU Termination Rayı',
+        value: termVal,
+        formattedValue: `${termVal.toFixed(3)} V`,
+        pct: Math.min(100, Math.max(15, (termVal / 2.0) * 100)),
+        color: 'linear-gradient(90deg, #06B6D4, #3B82F6)',
+        minFormatted: term?.formattedMin || `${(termVal * 0.98).toFixed(3)} V`,
+        avgFormatted: term?.formattedAvg || '-',
+        maxFormatted: term?.formattedMax || '-'
+      }
+    ];
+  }
+
+  // 6. Fanlar (Soğutma - 9 Adet Fan)
+  if (cardType === 'fans') {
+    const nctFans = allSensors.filter(x => x.hardware.includes('NCT') && x.type === 'Fan').slice(0, 7);
+    const gpuFans = allSensors.filter(x => (x.hardware.includes('GeForce') || x.hardware.includes('GPU')) && x.type === 'Fan').slice(0, 2);
+    const combined = [...nctFans, ...gpuFans];
+
+    return combined.map((f, i) => {
+      const val = f.value ?? 0;
+      const isGpu = f.hardware.includes('GeForce') || f.hardware.includes('GPU');
+      const maxRpm = isGpu ? 3200 : 2800;
+      return {
+        icon: '🌀',
+        label: isGpu ? `GPU Fan ${i - nctFans.length + 1}` : `Kasa Fan #${i + 1}`,
+        value: val,
+        formattedValue: val > 0 ? `${Math.round(val)} RPM` : '0 RPM (Pasif)',
+        pct: Math.min(100, Math.max(0, (val / maxRpm) * 100)),
+        color: val > 2000 ? 'var(--accent-red)' : val > 1200 ? 'var(--accent-amber)' : 'var(--accent-green)',
+        valColor: val > 0 ? 'var(--text-primary)' : 'var(--text-muted)'
+      };
+    });
+  }
+
+  return [];
+}
+
+function buildDefaultWidgetsFromSensors(sensors) {
   return [
     {
-      icon: '🌡️',
-      label: 'GPU Sıcaklığı',
-      value: gtVal,
-      formattedValue: `${gtVal.toFixed(1)} °C`,
-      pct: Math.min(100, Math.max(10, ((gtVal - 25) / 65) * 100)),
-      color: gtVal > 78 ? 'var(--accent-red)' : gtVal > 65 ? 'var(--accent-amber)' : 'linear-gradient(90deg, #10B981, #06B6D4)',
-      valColor: gtVal > 78 ? 'var(--accent-red)' : 'var(--text-primary)',
-      avgFormatted: gpuTempSens?.formattedAvg || '-',
-      maxFormatted: gpuTempSens?.formattedMax || '-'
+      id: 'w_cpu',
+      cardType: 'cpu',
+      chartCode: 'M1',
+      skeleton: 'S-bento',
+      span: 'span-6',
+      customTitle: 'İşlemci (CPU) Özeti',
+      m1Variant: 'hybrid',
+      enabled: true
     },
     {
-      icon: '📊',
-      label: 'GPU Kullanımı (Yük)',
-      value: glVal,
-      formattedValue: `%${glVal.toFixed(1)}`,
-      pct: Math.min(100, Math.max(4, glVal)),
-      color: 'linear-gradient(90deg, #3B82F6, #6366F1)',
-      avgFormatted: gpuLoadSens?.formattedAvg || '-',
-      maxFormatted: gpuLoadSens?.formattedMax || '-'
+      id: 'w_gpu',
+      cardType: 'gpu',
+      chartCode: 'M1',
+      skeleton: 'S-bento',
+      span: 'span-6',
+      customTitle: 'Ekran Kartı (GPU) Özeti',
+      m1Variant: 'hybrid',
+      enabled: true
     },
     {
-      icon: '⚡',
-      label: 'Güç Tüketimi (Watt)',
-      value: gpVal,
-      formattedValue: `${gpVal.toFixed(1)} W`,
-      pct: Math.min(100, Math.max(5, (gpVal / 380) * 100)),
-      color: 'linear-gradient(90deg, #F59E0B, #EF4444)',
-      avgFormatted: gpuPowerSens?.formattedAvg || '-',
-      maxFormatted: gpuPowerSens?.formattedMax || '-'
+      id: 'w_ram',
+      cardType: 'ram',
+      chartCode: 'M1',
+      skeleton: 'S-bento',
+      span: 'span-6',
+      customTitle: 'Bellek (RAM) & DIMM Özeti',
+      m1Variant: 'hybrid',
+      enabled: true
     },
     {
-      icon: '⏱️',
-      label: 'Çekirdek Frekansı',
-      value: gcVal,
-      formattedValue: `${Math.round(gcVal)} MHz`,
-      pct: Math.min(100, Math.max(10, (gcVal / 3000) * 100)),
-      color: 'linear-gradient(90deg, #8B5CF6, #EC4899)',
-      avgFormatted: gpuClockSens?.formattedAvg || '-',
-      maxFormatted: gpuClockSens?.formattedMax || '-'
+      id: 'w_board',
+      cardType: 'board',
+      chartCode: 'M1',
+      skeleton: 'S-bento',
+      span: 'span-6',
+      customTitle: 'Anakart (Motherboard) Özeti',
+      m1Variant: 'hybrid',
+      enabled: true
     },
     {
-      icon: '🔋',
-      label: 'GPU Voltajı',
-      value: gvVal,
-      formattedValue: `${gvVal.toFixed(3)} V`,
-      pct: Math.min(100, Math.max(10, (gvVal / 1.15) * 100)),
-      color: 'linear-gradient(90deg, #06B6D4, #3B82F6)',
-      avgFormatted: gpuVoltSens?.formattedAvg || '-',
-      maxFormatted: gpuVoltSens?.formattedMax || '-'
+      id: 'w_psu',
+      cardType: 'psu',
+      chartCode: 'M1',
+      skeleton: 'S-bento',
+      span: 'span-6',
+      customTitle: 'Güç Tüketimi (PSU) Özeti',
+      m1Variant: 'hybrid',
+      enabled: true
+    },
+    {
+      id: 'w_fans',
+      cardType: 'fans',
+      chartCode: 'M1',
+      skeleton: 'S-bento',
+      span: 'span-6',
+      customTitle: 'Soğutma & Fanlar (Halka HUD)',
+      m1Variant: 'hybrid',
+      enabled: true
     }
   ];
 }
 
-function buildDefaultWidgetsFromSensors(sensors) {
-  if (!sensors || !sensors.length) return [];
-
-  // 1. CPU Ana Sıcaklık Sensörü
-  const cpuTemp = sensors.find(s => (s.hardware.includes('Ryzen') || s.hardware.includes('CPU')) && s.type === 'Sıcaklık' && s.name.includes('Core'))
-               || sensors.find(s => (s.hardware.includes('Ryzen') || s.hardware.includes('CPU')) && s.type === 'Sıcaklık')
-               || sensors.find(s => s.type === 'Sıcaklık');
-
-  // 2. GPU Ana Sıcaklık Sensörü
-  const gpuTemp = sensors.find(s => (s.hardware.includes('GeForce') || s.hardware.includes('RTX') || s.hardware.includes('NVIDIA') || s.hardware.includes('GPU')) && s.type === 'Sıcaklık' && s.name.includes('Core'))
-               || sensors.find(s => (s.hardware.includes('GeForce') || s.hardware.includes('RTX') || s.hardware.includes('NVIDIA') || s.hardware.includes('GPU')) && s.type === 'Sıcaklık')
-               || sensors.find(s => s.id !== cpuTemp?.id && s.type === 'Sıcaklık');
-
-  const widgets = [];
-  if (cpuTemp) {
-    widgets.push({
-      id: 'w_cpu_summary',
-      sensorId: cpuTemp.id,
-      chartCode: 'M1',
-      skeleton: 'S-bento',
-      span: 'span-6',
-      customTitle: `${cpuTemp.hardware} Özeti`
-    });
-  }
-  if (gpuTemp) {
-    widgets.push({
-      id: 'w_gpu_summary',
-      sensorId: gpuTemp.id,
-      chartCode: 'M1',
-      skeleton: 'S-bento',
-      span: 'span-6',
-      customTitle: `${gpuTemp.hardware} Özeti`
-    });
-  }
-
-  return widgets;
-}
-
 function buildCardDataForWidget(w) {
-  const s = state.sensorMap.get(w.sensorId) || Array.from(state.sensorMap.values())[0];
-  const chartCode = normalizeChartCode(w.chartCode);
-
-  if (!s) {
-    const fallback = CATALOG_CARDS[0];
-    return { ...fallback, id: w.id, chartCode, skeleton: w.skeleton, span: w.span };
-  }
-
-  const hist = state.historyMap.get(s.id) || [s.value || 0, s.value || 0];
-  const peers = Array.from(state.sensorMap.values())
-    .filter(p => p.hardware === s.hardware && p.type === s.type)
-    .slice(0, 5);
-
-  let multiSensors = [];
-  if (Array.isArray(w.secondarySensorIds) && w.secondarySensorIds.length > 0) {
-    multiSensors = [s, ...w.secondarySensorIds.map(id => state.sensorMap.get(id)).filter(Boolean)].map(item => ({
-      ...item,
-      history: state.historyMap.get(item.id) || [item.value || 0]
-    }));
-  } else if (peers.length >= 2) {
-    multiSensors = peers.map(item => ({
-      ...item,
-      history: state.historyMap.get(item.id) || [item.value || 0]
-    }));
-  }
-
-  const derived = getDerivedTelemetry(s.id, s);
   const allSensors = Array.from(state.sensorMap.values());
-  const matrixRows = chartCode === 'M1' ? buildLiveMatrixRows(s, allSensors) : null;
-  const cardTitle = chartCode === 'M1'
-    ? (w.customTitle || `${s.hardware} Özeti`)
-    : (w.customTitle && !w.customTitle.endsWith('Özeti') ? w.customTitle : s.name);
+  let primarySensor = null;
+
+  if (w.cardType === 'cpu') {
+    primarySensor = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'))
+      || allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Sıcaklık') || allSensors[0];
+  } else if (w.cardType === 'gpu') {
+    primarySensor = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'))
+      || allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık') || allSensors[0];
+  } else if (w.cardType === 'ram') {
+    primarySensor = allSensors.find(x => x.hardware.includes('Total Memory') && x.type === 'Yük')
+      || allSensors.find(x => x.hardware.includes('Memory') && !x.hardware.includes('Virtual') && x.type === 'Yük') || allSensors[0];
+  } else if (w.cardType === 'board') {
+    primarySensor = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'Temperature #1') || allSensors[0];
+  } else if (w.cardType === 'psu') {
+    primarySensor = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç')
+      || allSensors.find(x => x.type === 'Güç') || allSensors[0];
+  } else if (w.cardType === 'fans') {
+    primarySensor = allSensors.find(x => x.type === 'Fan' && (x.value || 0) > 0) || allSensors.find(x => x.type === 'Fan') || allSensors[0];
+  } else {
+    primarySensor = state.sensorMap.get(w.sensorId) || allSensors[0];
+  }
+
+  const s = primarySensor || { id: w.id, name: w.customTitle, value: 50, formattedValue: '50' };
+  let hist = state.historyMap.get(s.id) || [s.value || 0, s.value || 0];
+  const matrixRows = buildLiveMatrixRows(w.cardType || 'cpu', s, allSensors);
+
+  // PSU için toplam güç (CPU W + GPU W) geçmişini eleman bazında birleştir
+  if (w.cardType === 'psu') {
+    const cpuP = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç');
+    const gpuP = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
+    const cpuHist = (cpuP && state.historyMap.get(cpuP.id)) || [];
+    const gpuHist = (gpuP && state.historyMap.get(gpuP.id)) || [];
+    const maxLen = Math.max(cpuHist.length, gpuHist.length);
+    if (maxLen > 0) {
+      hist = Array.from({ length: maxLen }, (_, i) => {
+        const c = cpuHist[i] ?? (cpuP?.value || 0);
+        const g = gpuHist[i] ?? (gpuP?.value || 0);
+        return c + g;
+      });
+    }
+  }
+
+  // Kart ana metriklerini özet tablonun 1. ana satırıyla (matrixRows[0]) tam eşitle
+  const heroRow = matrixRows[0] || {};
+  const cardVal = (heroRow.value !== undefined) ? heroRow.value : s.value;
+  const cardFormattedVal = heroRow.formattedValue || s.formattedValue;
+  const cardFormattedMin = heroRow.minFormatted || s.formattedMin || '-';
+  const cardFormattedAvg = heroRow.avgFormatted || s.formattedAvg || '-';
+  const cardFormattedMax = heroRow.maxFormatted || s.formattedMax || '-';
 
   return {
     id: w.id,
+    cardType: w.cardType,
     sensorId: s.id,
-    secondarySensorIds: w.secondarySensorIds || [],
-    chartCode,
+    chartCode: 'M1',
     m1Variant: w.m1Variant || 'hybrid',
     skeleton: w.skeleton || 'S-bento',
-    span: w.span || (chartCode === 'M1' ? 'span-6' : 'span-4'),
-    name: cardTitle,
+    span: w.span || 'span-6',
+    name: w.customTitle || s.name,
     hardware: s.hardware,
     type: s.type,
-    value: s.value,
-    formattedValue: s.formattedValue,
+    value: cardVal,
+    formattedValue: cardFormattedVal,
     min: s.min,
-    formattedMin: s.formattedMin,
+    formattedMin: cardFormattedMin,
     max: s.max,
-    formattedMax: s.formattedMax,
+    formattedMax: cardFormattedMax,
     avg: s.avg,
-    formattedAvg: s.formattedAvg,
-    unit: parseUnit(s.formattedValue),
+    formattedAvg: cardFormattedAvg,
+    unit: parseUnit(cardFormattedVal),
     history: hist,
-    peers,
-    multiSensors,
-    matrixRows,
-    derived
+    matrixRows
   };
 }
 
@@ -484,6 +795,9 @@ function updateCardElementInPlace(el, data) {
   const unitEl = el.querySelector('.js-val-unit');
   if (unitEl) unitEl.textContent = unit;
 
+  const minEl = el.querySelector('.js-min-text');
+  if (minEl) minEl.textContent = data.formattedMin || '-';
+
   const avgEl = el.querySelector('.js-avg-text');
   if (avgEl) avgEl.textContent = data.formattedAvg || '-';
 
@@ -519,14 +833,16 @@ function getActiveCardsData() {
         derived: getDerivedTelemetry(c.id, c)
       }));
   }
-  return state.widgets.map(w => buildCardDataForWidget(w));
+  return state.widgets.filter(w => w.enabled !== false).map(w => buildCardDataForWidget(w));
 }
 
 function renderDashboard() {
   const grid = document.getElementById('dashboardGrid');
   if (!grid) return;
 
-  grid.classList.toggle('layout-g1-stage', state.layout === 'g1-stage');
+  grid.classList.remove('layout-g1-stage', 'layout-cols-1', 'layout-cols-2', 'layout-cols-3', 'layout-cols-4');
+  const activeLayout = (state.layout === 'cols-3') ? 'cols-3' : 'cols-2';
+  grid.classList.add(`layout-${activeLayout}`);
   updateDynamicBadges();
 
   if (state.mode === 'live' && state.widgets.length === 0) {
@@ -600,7 +916,7 @@ function renderDashboard() {
   }
 
   // Canlı Mod: Sadece değişen kartları yerinde güncelle
-  grid.querySelectorAll('.catalog-section-header, .uiv2-card.span-12').forEach(h => h.remove());
+  grid.querySelectorAll('.catalog-section-header').forEach(h => h.remove());
   for (const [id, domEl] of cardDomMap.entries()) {
     if (!activeIds.has(id)) {
       domEl.remove();
@@ -615,6 +931,9 @@ function renderDashboard() {
       cardDomMap.set(cardData.id, el);
       grid.appendChild(el);
     } else {
+      if (!el.isConnected) {
+        grid.appendChild(el);
+      }
       updateCardElementInPlace(el, cardData);
     }
     updateOpenPopoverIfActive(cardData, allSensors, isLiveMode);
@@ -713,21 +1032,14 @@ function removeCard(cardId) {
 // --- HIZLI SENSÖR SEÇİCİ ARAYÜZÜ ---
 
 function openSensorPickerForCard(cardId) {
-  state.targetCardForSensorPick = cardId;
-  openDrawerWithTab('add-sensor');
-  const searchInput = document.getElementById('sensorSearchInput');
-  if (searchInput) {
-    searchInput.placeholder = 'Bu karta atamak için sensör ara...';
-    searchInput.focus();
+  const cardData = state.widgets.find(w => w.id === cardId);
+  if (cardData) {
+    const allSensors = Array.from(state.sensorMap.values());
+    openPopover(cardData, allSensors, state.mode === 'live');
   }
 }
 
 function openDrawerWithTab(tabName) {
-  state.drawerTab = tabName;
-  const tabCtrl = document.getElementById('drawerTabControl');
-  tabCtrl?.querySelectorAll('.seg-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.dtab === tabName);
-  });
   renderDrawerContent();
   document.getElementById('configDrawerBackdrop')?.classList.add('open');
 }
@@ -736,174 +1048,43 @@ function renderDrawerContent() {
   const listEl = document.getElementById('drawerContentList');
   if (!listEl) return;
 
-  const q = (document.getElementById('sensorSearchInput')?.value || '').trim().toLowerCase();
-  const allSensors = Array.from(state.sensorMap.values());
-  const isCardPickMode = Boolean(state.targetCardForSensorPick);
-  const targetCard = isCardPickMode ? state.widgets.find(w => w.id === state.targetCardForSensorPick) : null;
+  const cardLabels = {
+    w_cpu: { title: 'İşlemci (CPU) Özeti', sub: 'AMD Ryzen 9 9950X · Sıcaklık, Saat, Güç, Voltaj, Yük', icon: '⚡' },
+    w_gpu: { title: 'Ekran Kartı (GPU) Özeti', sub: 'NVIDIA GeForce RTX 5080 · Sıcaklık, Yük, Saat, Güç', icon: '🎮' },
+    w_ram: { title: 'Bellek (RAM) & DIMM Özeti', sub: 'A-DATA DDR5 · Kullanım, Boyut, DIMM 1/2 Sıcaklıkları', icon: '🧠' },
+    w_board: { title: 'Anakart (Motherboard) Özeti', sub: 'Nuvoton NCT6701D · VRM/Sistem Sıcaklığı, +3.3V, AVCC', icon: '🛡️' },
+    w_psu: { title: 'Güç Tüketimi (PSU) Özeti', sub: 'Tahmini Sistem Watt, CPU/GPU Çekimi, Voltaj Rayları', icon: '🔌' },
+    w_fans: { title: 'Soğutma & Fanlar (Halka HUD)', sub: '7 Kasa Fanı + 2 GPU Fanı (iOS Dairesel Halka Tasarımı)', icon: '🌀' }
+  };
 
-  // SEKME 1: AKTİF KARTLARIM
-  if (state.drawerTab === 'active-cards' && !isCardPickMode) {
-    if (state.widgets.length === 0) {
-      listEl.innerHTML = `
-        <div style="padding:18px;text-align:center;color:var(--text-secondary);font-size:12px;">
-          Panelde aktif kart yok. <strong>"＋ Yeni Sensör / Kart Ekle"</strong> sekmesinden ekleyebilirsiniz.
-        </div>
-      `;
-      return;
-    }
-
-    const filteredWidgets = state.widgets.filter(w => {
-      const s = state.sensorMap.get(w.sensorId);
-      if (!q) return true;
-      return (s?.name || '').toLowerCase().includes(q)
-        || (s?.hardware || '').toLowerCase().includes(q)
-        || w.chartCode.toLowerCase().includes(q);
-    });
-
-    listEl.innerHTML = filteredWidgets.map((w, idx) => {
-      const s = state.sensorMap.get(w.sensorId);
-      const meta = getChartMeta(w.chartCode);
-      return `
-        <div class="sensor-pick-item" data-widget-id="${w.id}">
-          <div class="sensor-pick-top">
-            <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
-              <span class="chart-code-pill">#${idx + 1}</span>
-              <button class="ctrl-btn js-drawer-pick-sensor" type="button" style="padding:4px 8px;font-size:11px;min-width:0;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                🎯 ${s?.name || 'Sensör Seç'} ▾
-              </button>
-            </div>
-            <button class="icon-btn-danger js-delete-active-widget" type="button" title="Kartı Kaldır" style="width:28px;height:28px;">🗑️</button>
-          </div>
-          <div class="sensor-pick-controls">
-            <select class="js-active-chart-sel">
-              ${CHART_POOL.map(c => `<option value="${c.code}" ${c.code === w.chartCode ? 'selected' : ''}>${c.name}</option>`).join('')}
-            </select>
-            <select class="js-active-skel-sel">
-              ${SKELETON_POOL.map(sk => `<option value="${sk.code}" ${sk.code === w.skeleton ? 'selected' : ''}>${sk.code}</option>`).join('')}
-            </select>
-            <select class="js-active-span-sel">
-              <option value="span-3" ${w.span === 'span-3' ? 'selected' : ''}>1/4 Dar</option>
-              <option value="span-4" ${w.span === 'span-4' ? 'selected' : ''}>1/3 Orta</option>
-              <option value="span-6" ${w.span === 'span-6' ? 'selected' : ''}>1/2 Geniş</option>
-              <option value="span-12" ${w.span === 'span-12' ? 'selected' : ''}>Tam Şerit</option>
-            </select>
-          </div>
-          <div style="font-size:10.5px;color:var(--text-muted);display:flex;justify-content:space-between;">
-            <span>Donanım: ${s?.hardware || '-'}</span>
-            <span class="needs-badge ${meta.needs}">${getNeedsLabel(meta.needs)}</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    listEl.querySelectorAll('.sensor-pick-item').forEach(itemEl => {
-      const widgetId = itemEl.dataset.widgetId;
-      itemEl.querySelector('.js-drawer-pick-sensor')?.addEventListener('click', () => {
-        openSensorPickerForCard(widgetId);
-      });
-      itemEl.querySelector('.js-delete-active-widget')?.addEventListener('click', () => {
-        removeCard(widgetId);
-      });
-      itemEl.querySelector('.js-active-chart-sel')?.addEventListener('change', (e) => {
-        changeCardChart(widgetId, e.target.value);
-        renderDrawerContent();
-      });
-      itemEl.querySelector('.js-active-skel-sel')?.addEventListener('change', (e) => {
-        changeCardSkeleton(widgetId, e.target.value);
-      });
-      itemEl.querySelector('.js-active-span-sel')?.addEventListener('change', (e) => {
-        const w = state.widgets.find(x => x.id === widgetId);
-        if (w) {
-          w.span = e.target.value;
-          persistState();
-          renderDashboard();
-        }
-      });
-    });
-    return;
-  }
-
-  // SEKME 2: YENİ SENSÖR / KART EKLE VEYA SEÇİLİ KARTA ATAMA
-  if (allSensors.length === 0) {
-    listEl.innerHTML = `<div style="font-size:12px;color:var(--text-secondary);padding:12px;">Sensör verisi bekleniyor...</div>`;
-    return;
-  }
-
-  const filteredSensors = allSensors.filter(s =>
-    !q || s.name.toLowerCase().includes(q) || s.hardware.toLowerCase().includes(q) || s.type.toLowerCase().includes(q)
-  ).slice(0, 90);
-
-  const bannerHtml = isCardPickMode ? `
-    <div style="background:rgba(59,130,246,0.15);border:1px solid var(--accent-blue);border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;font-size:12px;">
-      <span>🎯 <strong>Kart İçin Sensör Seçin</strong> (${targetCard?.chartCode || 'Kart'})</span>
-      <button id="btnCancelCardPick" class="ctrl-btn" type="button" style="padding:2px 8px;font-size:10.5px;">İptal</button>
-    </div>
-  ` : '';
-
-  listEl.innerHTML = bannerHtml + filteredSensors.map(s => {
-    const isCurrent = targetCard?.sensorId === s.id;
+  listEl.innerHTML = state.widgets.map((w) => {
+    const meta = cardLabels[w.id] || { title: w.customTitle, sub: 'Sabit Donanım Matrisi', icon: '📊' };
+    const isEnabled = w.enabled !== false;
     return `
-      <div class="sensor-pick-item" data-sensor-id="${s.id}" style="${isCurrent ? 'border-color:var(--accent-blue);background:rgba(59,130,246,0.08);' : ''}">
-        <div class="sensor-pick-top">
+      <div class="sensor-pick-item" style="padding:12px 14px;border-radius:12px;background:var(--bg-card-inner, rgba(255,255,255,0.03));border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <span style="font-size:20px;">${meta.icon}</span>
           <div style="min-width:0;">
-            <div style="font-size:12.5px;font-weight:600;color:var(--text-primary);">${s.name}</div>
-            <div class="tabular-nums" style="font-size:11px;color:var(--text-secondary);">
-              ${s.hardware} · ${s.type} · <strong style="color:var(--accent-blue);">${s.formattedValue}</strong>
-            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${meta.title}</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${meta.sub}</div>
           </div>
-          <button class="ctrl-btn primary js-select-or-add-sensor" type="button" style="padding:5px 12px;font-size:11.5px;flex-shrink:0;">
-            ${isCardPickMode ? (isCurrent ? '✓ Seçili' : '🎯 Bu Sensörü Ata') : '＋ Kart Olarak Ekle'}
-          </button>
         </div>
-        ${!isCardPickMode ? `
-          <div class="sensor-pick-controls">
-            <select class="js-new-chart">
-              ${CHART_POOL.map(c => `<option value="${c.code}" ${c.code === 'B1' ? 'selected' : ''}>${c.name}</option>`).join('')}
-            </select>
-            <select class="js-new-skel">
-              ${SKELETON_POOL.map(sk => `<option value="${sk.code}">${sk.code}</option>`).join('')}
-            </select>
-            <select class="js-new-span">
-              <option value="span-3">1/4 Dar</option>
-              <option value="span-4" selected>1/3 Orta</option>
-              <option value="span-6">1/2 Geniş</option>
-              <option value="span-12">Tam Şerit</option>
-            </select>
-          </div>
-        ` : ''}
+        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;">
+          <input type="checkbox" class="js-toggle-fixed-card" data-widget-id="${w.id}" ${isEnabled ? 'checked' : ''} style="opacity:0;width:0;height:0;" />
+          <span style="position:absolute;inset:0;background:${isEnabled ? 'var(--accent-blue)' : 'rgba(255,255,255,0.14)'};border-radius:24px;transition:0.2s;">
+            <span style="position:absolute;height:18px;width:18px;left:${isEnabled ? '23px' : '3px'};bottom:3px;background:white;border-radius:50%;transition:0.2s;"></span>
+          </span>
+        </label>
       </div>
     `;
   }).join('');
 
-  document.getElementById('btnCancelCardPick')?.addEventListener('click', () => {
-    state.targetCardForSensorPick = null;
-    renderDrawerContent();
-  });
-
-  listEl.querySelectorAll('.sensor-pick-item').forEach(itemEl => {
-    const sensorId = itemEl.dataset.sensorId;
-    const btnAction = itemEl.querySelector('.js-select-or-add-sensor');
-
-    btnAction?.addEventListener('click', () => {
-      if (state.targetCardForSensorPick) {
-        // Seçili karta bu sensörü ata ve çekmeceyi kapat
-        changeCardSensor(state.targetCardForSensorPick, sensorId);
-        state.targetCardForSensorPick = null;
-        document.getElementById('configDrawerBackdrop')?.classList.remove('open');
-      } else {
-        // Yeni kart ekle
-        const chartSel = itemEl.querySelector('.js-new-chart');
-        const skelSel = itemEl.querySelector('.js-new-skel');
-        const spanSel = itemEl.querySelector('.js-new-span');
-        localStorage.removeItem('thm_uiv2_user_cleared');
-        state.widgets.push({
-          id: 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-          sensorId,
-          secondarySensorIds: [],
-          chartCode: normalizeChartCode(chartSel?.value || 'B1'),
-          skeleton: skelSel?.value || 'S-bento',
-          span: spanSel?.value || 'span-4'
-        });
+  listEl.querySelectorAll('.js-toggle-fixed-card').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const widgetId = e.target.dataset.widgetId;
+      const w = state.widgets.find(x => x.id === widgetId);
+      if (w) {
+        w.enabled = e.target.checked;
         persistState();
         renderDrawerContent();
         renderDashboard();
@@ -993,10 +1174,6 @@ async function pollTelemetry(signal) {
       uptimeBaseTimestamp = Date.now();
     }
 
-    const hostEl = document.getElementById('hostNameTitle');
-    if (hostEl && payload.hostName) {
-      hostEl.textContent = `${payload.hostName} · UI v2`;
-    }
     dot?.classList.remove('offline');
 
     const sensors = Array.isArray(payload.sensors) ? payload.sensors : [];
@@ -1017,7 +1194,7 @@ async function pollTelemetry(signal) {
       }
     });
 
-    if (state.widgets.length === 0 && sensors.length > 0 && !localStorage.getItem('thm_uiv2_user_cleared')) {
+    if (state.widgets.length === 0) {
       state.widgets = buildDefaultWidgetsFromSensors(sensors);
       persistState();
     }
@@ -1088,118 +1265,47 @@ async function initApp() {
 
   const layoutSelect = document.getElementById('layoutSelect');
   if (layoutSelect) {
-    layoutSelect.value = state.layout;
+    layoutSelect.value = state.layout || 'cols-2';
     layoutSelect.addEventListener('change', (e) => {
       state.layout = e.target.value;
       persistState();
+      document.querySelectorAll('.uiv2-card').forEach(c => delete c.dataset.lastRenderWidth);
       renderDashboard();
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.uiv2-card').forEach(c => delete c.dataset.lastRenderWidth);
+        renderDashboard();
+      });
     });
   }
 
-  // Mod Segment Kontrolü (Canlı Panel / Katalog)
-  const modeCtrl = document.getElementById('modeSegmentControl');
-  const filterBar = document.getElementById('catalogFilterBar');
-
-  function setMode(newMode) {
-    state.mode = newMode;
-    modeCtrl?.querySelectorAll('.seg-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.mode === newMode);
-    });
-    if (filterBar) {
-      filterBar.style.display = newMode === 'catalog' ? 'flex' : 'none';
-    }
-    cardDomMap.clear();
-    const grid = document.getElementById('dashboardGrid');
-    if (grid) grid.innerHTML = '';
-    renderDashboard();
-  }
-
-  modeCtrl?.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetMode = btn.dataset.mode;
-      if (targetMode === 'catalog') {
-        history.replaceState(null, '', '#catalog');
-      } else {
-        history.replaceState(null, '', window.location.pathname);
-      }
-      setMode(targetMode);
-    });
-  });
-
-  if (window.location.hash === '#catalog') {
-    setMode('catalog');
-  }
-
-  window.addEventListener('hashchange', () => {
-    setMode(window.location.hash === '#catalog' ? 'catalog' : 'live');
-  });
-
-  // Katalog Grup Filtresi
-  const groupCtrl = document.getElementById('catalogGroupFilter');
-  groupCtrl?.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      groupCtrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.catalogGroup = btn.dataset.group;
-      cardDomMap.clear();
-      const grid = document.getElementById('dashboardGrid');
-      if (grid) grid.innerHTML = '';
+  // Mobil Yatay ↔ Dikey Döndürme ve Ekran Boyutu Değişimi Dinleyicisi (Live Akış Kırpılma Koruması)
+  let resizeDebounceTimer = null;
+  const handleWindowViewportChange = () => {
+    clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = setTimeout(() => {
+      document.querySelectorAll('.uiv2-card').forEach(c => delete c.dataset.lastRenderWidth);
       renderDashboard();
-    });
-  });
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.uiv2-card').forEach(c => delete c.dataset.lastRenderWidth);
+        renderDashboard();
+      });
+    }, 70);
+  };
+  window.addEventListener('resize', handleWindowViewportChange, { passive: true });
+  window.addEventListener('orientationchange', handleWindowViewportChange, { passive: true });
 
-  // Zaman penceresi (1dk / 5dk / 15dk)
-  const winCtrl = document.getElementById('windowSegmentControl');
-  winCtrl?.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.classList.toggle('active', Number(btn.dataset.window) === state.windowSec);
-    btn.addEventListener('click', async () => {
-      winCtrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.windowSec = Number(btn.dataset.window) || 60;
-      persistState();
-      await hydrateHistoryFromServer();
-      renderDashboard();
-    });
-  });
-
-  // Çekmece Kontrolleri (Sensör Seçici / Kart Yönet)
+  // Çekmece Kontrolleri (Sabit Kart Yönetimi)
   const drawerBackdrop = document.getElementById('configDrawerBackdrop');
   document.getElementById('btnOpenDrawer')?.addEventListener('click', () => {
-    state.targetCardForSensorPick = null;
-    openDrawerWithTab(state.widgets.length > 0 ? 'active-cards' : 'add-sensor');
+    openDrawerWithTab('active-cards');
   });
   document.getElementById('btnCloseDrawer')?.addEventListener('click', () => {
-    state.targetCardForSensorPick = null;
     drawerBackdrop?.classList.remove('open');
   });
   drawerBackdrop?.addEventListener('click', (e) => {
     if (e.target === drawerBackdrop) {
-      state.targetCardForSensorPick = null;
       drawerBackdrop.classList.remove('open');
     }
-  });
-
-  const drawerTabCtrl = document.getElementById('drawerTabControl');
-  drawerTabCtrl?.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      drawerTabCtrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.drawerTab = btn.dataset.dtab;
-      renderDrawerContent();
-    });
-  });
-
-  document.getElementById('sensorSearchInput')?.addEventListener('input', () => {
-    renderDrawerContent();
-  });
-
-  document.getElementById('btnClearAllCards')?.addEventListener('click', () => {
-    state.widgets = [];
-    localStorage.setItem('thm_uiv2_user_cleared', '1');
-    persistState();
-    cardDomMap.clear();
-    renderDrawerContent();
-    renderDashboard();
   });
 
   document.getElementById('btnResetDefaults')?.addEventListener('click', () => {

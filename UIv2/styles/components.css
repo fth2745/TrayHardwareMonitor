@@ -202,18 +202,76 @@
 
 .S-bento .s-bento-metric-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 12px;
+}
+
+.s-bento-metric-left {
+  display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 4px 0 12px;
-  flex-wrap: wrap;
+}
+
+.s-bento-minmax-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.minmax-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 3px 8px;
+  min-width: 52px;
+  transition: all 0.15s ease;
+}
+
+.minmax-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.minmax-lbl {
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.minmax-pill strong {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
 .S-bento .s-bento-big-number {
+  font-family: var(--font-sans);
   font-size: 36px;
-  font-weight: 500;
+  font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1.05;
+}
+
+.card-fixed-title {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  display: inline-block;
 }
 
 .unit-suffix {
@@ -298,7 +356,7 @@
 
 .S-hero .hero-big-val {
   font-size: 38px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
   color: var(--text-on-hero);
@@ -388,7 +446,7 @@
   min-height: 106px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   position: relative;
   flex: 1;
 }
@@ -1031,6 +1089,9 @@
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  justify-content: space-between;
 }
 
 .summary-matrix-sparkline {
@@ -1040,6 +1101,7 @@
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--border-card-subtle, rgba(255, 255, 255, 0.04));
+  flex-shrink: 0;
 }
 
 .summary-matrix-table {
@@ -1047,18 +1109,22 @@
   flex-direction: column;
   gap: 4px;
   width: 100%;
+  flex: 1;
+  justify-content: space-around;
 }
 
 .matrix-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 7px 10px;
+  gap: 8px;
+  padding: 5px 8px;
   background: var(--bg-card-inner, rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+  flex: 1;
+  min-height: 30px;
 }
 
 .matrix-row:hover {
@@ -1071,18 +1137,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 140px;
-  flex: 1.2;
+  flex: 0 0 148px;
+  width: 148px;
+  min-width: 148px;
+  max-width: 148px;
 }
 
 .matrix-row-icon {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
 }
 
 .matrix-row-label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -1090,13 +1158,13 @@
 }
 
 .matrix-bar-track {
-  flex: 1;
+  flex: 1 1 auto;
   height: 6px;
   background: rgba(255, 255, 255, 0.07);
   border-radius: 999px;
   overflow: hidden;
   position: relative;
-  min-width: 60px;
+  min-width: 40px;
 }
 
 .matrix-bar-fill {
@@ -1109,15 +1177,17 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
-  min-width: 90px;
+  gap: 5px;
+  flex: 0 0 80px;
+  width: 80px;
+  min-width: 80px;
   text-align: right;
 }
 
 .matrix-val-text {
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -1147,17 +1217,20 @@
   justify-content: space-between;
   padding: 2px 2px 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 8px;
 }
 
 .m1-variant-tag {
+  font-family: var(--font-sans);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .m1-variant-toggle-btn {
+  font-family: var(--font-sans);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1166,9 +1239,11 @@
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 10.5px;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
+  letter-spacing: 0.03em;
 }
 
 .m1-variant-toggle-btn:hover {
@@ -1185,20 +1260,46 @@
   background: var(--bg-card-inner, rgba(255, 255, 255, 0.03));
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.matrix-tile-hero-title {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .matrix-tile-hero-val {
-  font-size: 26px;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+}
+
+.matrix-tile-hero-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.matrix-tile-hero-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .matrix-tiles-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 6px;
+  flex: 1;
+  align-content: stretch;
 }
 
 .matrix-tile-card {
@@ -1207,6 +1308,10 @@
   border-radius: 8px;
   padding: 8px 10px;
   transition: transform 0.15s ease, background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 56px;
 }
 
 .matrix-tile-card:hover {
@@ -1225,18 +1330,38 @@
 }
 
 .matrix-tile-name {
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.03em;
 }
 
 .matrix-tile-val {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.matrix-tile-card .matrix-bar-track {
+  flex: none !important;
+  width: 100% !important;
+  height: 5px !important;
+  max-height: 5px !important;
+  min-height: 5px !important;
+  margin-top: 6px !important;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.matrix-tile-card .matrix-bar-fill {
+  height: 100% !important;
+  border-radius: 999px;
 }
 
 /* --- VARYANT 3: MİNİMALİST LİSTE --- */
@@ -1244,6 +1369,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  justify-content: space-around;
 }
 
 .matrix-minimal-row {
@@ -1253,6 +1380,7 @@
   padding: 8px 6px;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
   transition: background 0.15s ease;
+  flex: 1;
 }
 
 .matrix-minimal-row:last-child {
@@ -1302,6 +1430,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
 }
 
 .matrix-gauge-box {
@@ -1332,22 +1462,29 @@
 }
 
 .matrix-gauge-big-num {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .matrix-gauge-unit {
+  font-family: var(--font-sans);
   font-size: 10px;
+  font-weight: 700;
   color: var(--text-secondary);
   margin-top: 2px;
+  letter-spacing: 0.05em;
 }
 
 .matrix-gauge-tag {
+  font-family: var(--font-sans);
   font-size: 9px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   margin-top: 4px;
+  letter-spacing: 0.05em;
 }
 
 .matrix-gauge-metrics {
@@ -1355,12 +1492,21 @@
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  justify-content: space-around;
+  height: 100%;
 }
 
 .matrix-gauge-pill {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-card-inner, rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  border-radius: 6px;
+  flex: 1;
+  max-height: 44px;
+}
   padding: 5px 8px;
   background: var(--bg-card-inner, rgba(255, 255, 255, 0.025));
   border: 1px solid rgba(255, 255, 255, 0.035);
@@ -1534,6 +1680,187 @@ body.desk-mode-active .desk-mode-btn {
   background: var(--accent-blue);
   color: #fff;
   border-color: var(--accent-blue);
+}
+
+/* ==========================================================================
+   iOS Şarj / Pil Widget'ı Esintili Fan Halkaları
+   ========================================================================== */
+.fans-ios-sub-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 10px;
+}
+
+.fans-ios-badge {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+
+.fans-ios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+  flex: 1;
+  align-content: space-around;
+}
+
+.fan-ring-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  background: var(--bg-card-inner, rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.fan-ring-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.fan-ring-card.is-active {
+  background: rgba(34, 197, 94, 0.03);
+}
+
+.fan-ring-svg-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fan-ring-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fan-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fan-ring-icon {
+  font-size: 13px;
+  display: inline-block;
+}
+
+.fan-ring-icon.spinning {
+  animation: fan-spin 2.2s linear infinite;
+}
+
+@keyframes fan-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fan-ring-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 5px;
+  text-align: center;
+  width: 100%;
+}
+
+.fan-ring-name {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.fan-ring-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+/* ==========================================================================
+   Akıllı Kompakt Mod (Mobilde 2 Sıra ve Çok Sütunlu Izgarada Taşma Koruması)
+   ========================================================================== */
+@media (max-width: 760px) {
+  .uiv2-card {
+    padding: 10px 10px 12px !important;
+    border-radius: 12px !important;
+  }
+  .card-fixed-title {
+    font-size: 11.5px !important;
+  }
+  .S-bento .s-bento-big-number {
+    font-size: 26px !important;
+  }
+  .minmax-pill {
+    padding: 2px 5px !important;
+    min-width: 40px !important;
+  }
+  .minmax-lbl {
+    font-size: 7px !important;
+  }
+  .minmax-pill strong {
+    font-size: 9.5px !important;
+  }
+  .matrix-tile-hero {
+    padding: 6px 8px !important;
+  }
+  .matrix-tile-hero-val {
+    font-size: 19px !important;
+  }
+  .matrix-tile-hero-title {
+    font-size: 9px !important;
+  }
+  .matrix-tile-card {
+    padding: 6px 6px !important;
+    min-height: 48px !important;
+  }
+  .matrix-tile-name {
+    font-size: 8.5px !important;
+  }
+  .matrix-tile-val {
+    font-size: 12.5px !important;
+  }
+  .matrix-row {
+    padding: 3px 5px !important;
+    gap: 4px !important;
+  }
+  .matrix-row-label {
+    font-size: 10.5px !important;
+  }
+  .matrix-row-info {
+    flex: 0 0 125px !important;
+    width: 125px !important;
+    min-width: 125px !important;
+    max-width: 125px !important;
+    gap: 6px !important;
+  }
+  .matrix-val-text {
+    font-size: 11px !important;
+  }
+  .matrix-row-value {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+  }
+  .matrix-gauge-big-num {
+    font-size: 20px !important;
+  }
+  .matrix-gauge-box {
+    min-width: 76px !important;
+  }
 }
 
 

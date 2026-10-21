@@ -29,14 +29,15 @@ export function renderSmoothLineCore(container, data, opts = {}) {
     height = 104
   } = opts;
 
-  const w = Math.max(180, Math.round(container.clientWidth || 300));
+  const measuredW = Math.round(container.getBoundingClientRect().width || container.clientWidth || 0);
+  const w = Math.max(110, measuredW || 280);
   const h = height;
-  const padL = showYAxis ? 34 : 8;
-  const padR = 14;
-  const padT = 10;
-  const padB = 12;
-  const plotW = Math.max(60, w - padL - padR);
-  const plotH = Math.max(30, h - padT - padB);
+  const padL = showYAxis ? 30 : 6;
+  const padR = 8;
+  const padT = 8;
+  const padB = 10;
+  const plotW = Math.max(40, w - padL - padR);
+  const plotH = Math.max(20, h - padT - padB);
 
   const curVal = Number.isFinite(data.value) ? data.value : 55;
   let rawHist = Array.isArray(data.history) && data.history.length >= 2
@@ -116,26 +117,49 @@ export function renderSmoothLineCore(container, data, opts = {}) {
       sampleKey,
       startTime: now,
       duration: 980,
-      rafId: null
+      rafId: null,
+      renderedW: w
     };
     lineAnimStates.set(container, state);
-  } else if (state.sampleKey !== sampleKey) {
-    // Yeni veri geldi: Eski koordinattan yeni hedefe doğru pürüzsüz süzülme başlat
-    state.fromVal = Number.isFinite(state.curVal) ? state.curVal : prevVal;
-    state.toVal = latestVal;
-    state.dotStartX = Number.isFinite(state.dotCurX) ? state.dotCurX : targetDotX;
-    state.dotStartY = Number.isFinite(state.dotCurY) ? state.dotCurY : targetDotY;
-    state.targetDotX = targetDotX;
-    state.targetDotY = targetDotY;
-    state.sampleKey = sampleKey;
-    state.startTime = now;
+  } else {
+    const widthChanged = Math.abs((state.renderedW || w) - w) >= 4;
+    if (widthChanged) {
+      // Çapraz düzen geçişinde (Simetrik <-> Mozaik) genişlik değiştiğinde durumu yeni genişliğe resetle
+      state.renderedW = w;
+      state.dotCurX = targetDotX;
+      state.dotStartX = targetDotX;
+      state.targetDotX = targetDotX;
+      state.dotCurY = targetDotY;
+      state.dotStartY = targetDotY;
+      state.targetDotY = targetDotY;
+      state.fromVal = latestVal;
+      state.toVal = latestVal;
+      state.curVal = latestVal;
+      state.curMinV = targetMinV;
+      state.curMaxV = targetMaxV;
+      state.sampleKey = sampleKey;
+      state.startTime = now;
+    } else if (state.sampleKey !== sampleKey) {
+      // Yeni veri geldi: Eski koordinattan yeni hedefe doğru pürüzsüz süzülme başlat
+      state.fromVal = Number.isFinite(state.curVal) ? state.curVal : prevVal;
+      state.toVal = latestVal;
+      state.dotStartX = Number.isFinite(state.dotCurX) ? state.dotCurX : targetDotX;
+      state.dotStartY = Number.isFinite(state.dotCurY) ? state.dotCurY : targetDotY;
+      state.targetDotX = targetDotX;
+      state.targetDotY = targetDotY;
+      state.sampleKey = sampleKey;
+      state.startTime = now;
+    }
   }
 
   if (state.rafId) cancelAnimationFrame(state.rafId);
 
-  // Kalıcı DOM: SVG önceden varsa sıfırdan innerHTML yapma, DOM'u koru
+  // Kalıcı DOM: SVG önceden varsa sıfırdan innerHTML yapma, DOM'u koru; genişlik değiştiğinde viewBox ve ızgara güncelle
   let svgEl = container.querySelector('svg.live-line-svg');
-  if (!svgEl) {
+  const prevSvgW = Number(svgEl?.dataset?.w || 0);
+  const isWidthDiff = !svgEl || Math.abs(prevSvgW - w) >= 4;
+
+  if (!svgEl || isWidthDiff) {
     const gridCount = Math.max(4, Math.min(10, Math.floor(plotW / 65)));
     let gridCols = '';
     for (let i = 0; i <= gridCount; i++) {
@@ -144,9 +168,9 @@ export function renderSmoothLineCore(container, data, opts = {}) {
     }
 
     container.innerHTML = `
-      <svg class="live-line-svg" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible;">
+      <svg class="live-line-svg" data-w="${w}" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible;">
         <defs>${defsHtml}</defs>
-        ${gridCols}
+        <g class="js-grid-lines">${gridCols}</g>
         <g class="js-y-axis-labels"></g>
         ${showArea ? `<path class="js-area-path" fill="url(#${uid}_area)" />` : ''}
         <path class="js-line-path" fill="none" stroke="${strokeAttr}" stroke-width="2.3" stroke-linecap="round" />

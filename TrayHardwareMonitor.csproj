@@ -11,9 +11,9 @@
     <AssemblyTitle>Tray Hardware Monitor</AssemblyTitle>
     <Product>Tray Hardware Monitor</Product>
     <Description>LibreHardwareMonitorLib tabanlı ultra hafif sistem tepsisi ve Bento UI v2 web telemetri izleyicisi</Description>
-    <Version>2.0.0</Version>
-    <FileVersion>2.0.0.0</FileVersion>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <Version>2.1.0</Version>
+    <FileVersion>2.1.0.0</FileVersion>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
     <Authors>fth2745</Authors>
     <RepositoryUrl>https://github.com/fth2745/TrayHardwareMonitor</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -17,19 +17,34 @@ const M1_VARIANTS = [
 ];
 
 export function renderSummaryMatrix(container, data, options = {}) {
-  const isCpu = (data.name && data.name.includes('CPU')) ||
-                (data.hardware && (data.hardware.includes('Ryzen') || data.hardware.includes('CPU') || data.hardware.includes('Intel')));
+  const cardType = data.cardType || (
+    data.name && data.name.includes('CPU') ? 'cpu' :
+    data.name && (data.name.includes('GeForce') || data.name.includes('GPU')) ? 'gpu' :
+    data.name && data.name.includes('Bellek') ? 'ram' :
+    data.name && data.name.includes('Anakart') ? 'board' :
+    data.name && data.name.includes('Güç') ? 'psu' :
+    data.name && data.name.includes('Fan') ? 'fans' : 'cpu'
+  );
+
+  const typeLabels = {
+    cpu: 'İşlemci Matrisi',
+    gpu: 'Grafik Matrisi',
+    ram: 'Bellek Matrisi',
+    board: 'Anakart Matrisi',
+    psu: 'Güç Kaynağı & Raylar',
+    fans: 'Soğutma & Fan Halkaları'
+  };
 
   const variant = data.m1Variant || 'hybrid';
   const variantMeta = M1_VARIANTS.find(v => v.id === variant) || M1_VARIANTS[0];
 
   const rows = Array.isArray(data.matrixRows) && data.matrixRows.length > 0
     ? data.matrixRows
-    : getDefaultMatrixRows(isCpu, data);
+    : getDefaultMatrixRows(cardType === 'cpu', data);
 
   const topBarHtml = `
     <div class="m1-variant-bar">
-      <span class="m1-variant-tag">${isCpu ? 'İşlemci Matrisi' : 'Grafik Matrisi'}</span>
+      <span class="m1-variant-tag">${typeLabels[cardType] || 'Donanım Matrisi'}</span>
       <button class="m1-variant-toggle-btn js-toggle-m1-variant" type="button" title="Görünüm Değiştir (Hibrit / HUD / Minimal / Kadran)">
         <span>🎨</span>
         <span>${variantMeta.name}</span>
@@ -38,14 +53,17 @@ export function renderSummaryMatrix(container, data, options = {}) {
     </div>
   `;
 
-  if (variant === 'tiles') {
+  // Fan kartı için özel iOS şarj widget görünümü (veya diğer 4 varyant)
+  if (cardType === 'fans' && variant === 'hybrid') {
+    renderFansIosWidget(container, data, rows, topBarHtml);
+  } else if (variant === 'tiles') {
     renderTilesVariant(container, data, rows, topBarHtml);
   } else if (variant === 'minimal') {
     renderMinimalVariant(container, data, rows, topBarHtml);
   } else if (variant === 'gauge') {
     renderGaugeVariant(container, data, rows, topBarHtml);
   } else {
-    renderHybridVariant(container, data, rows, topBarHtml, isCpu);
+    renderHybridVariant(container, data, rows, topBarHtml, cardType === 'cpu');
   }
 
   // Varyant değiştirme tıklaması (güvenli tekil dinleyici)
@@ -58,6 +76,82 @@ export function renderSummaryMatrix(container, data, options = {}) {
         detail: { cardId: data.id }
       }));
     };
+  }
+}
+
+/**
+ * 0. FANLAR İÇİN iOS ŞARJ WIDGET GÖRSELİ (Dairesel Halkalar)
+ */
+function renderFansIosWidget(container, data, rows, topBarHtml) {
+  let box = container.querySelector('.summary-matrix-container.variant-fans-ios');
+  const activeCount = rows.filter(r => (Number.isFinite(r.value) && r.value > 0)).length;
+
+  if (!box) {
+    container.innerHTML = `
+      <div class="summary-matrix-container variant-fans-ios">
+        ${topBarHtml}
+        <div class="fans-ios-sub-bar">
+          <span class="fans-ios-badge">🌀 Aktif: <strong>${activeCount}</strong> / ${rows.length} Fan</span>
+          <span style="font-size:10.5px;color:var(--text-muted);">iOS Ring HUD</span>
+        </div>
+        <div class="fans-ios-grid">
+          ${rows.map((row) => {
+            const rad = 20;
+            const circ = 2 * Math.PI * rad;
+            const pct = Math.min(100, Math.max(0, row.pct || 0));
+            const strokeOffset = circ - (pct / 100) * circ;
+            const isActive = Number.isFinite(row.value) && row.value > 0;
+            const ringColor = isActive ? (row.color || 'var(--accent-green)') : 'rgba(255,255,255,0.08)';
+
+            return `
+              <div class="fan-ring-card ${isActive ? 'is-active' : 'is-idle'}" title="${row.label}: ${row.formattedValue}">
+                <div class="fan-ring-svg-wrap">
+                  <svg viewBox="0 0 52 52" class="fan-ring-svg">
+                    <circle cx="26" cy="26" r="${rad}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="4" />
+                    <circle class="js-fan-stroke" cx="26" cy="26" r="${rad}" fill="none" stroke="${ringColor}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${strokeOffset}" transform="rotate(-90 26 26)" style="transition: stroke-dashoffset 0.5s ease;" />
+                  </svg>
+                  <div class="fan-ring-center">
+                    <span class="fan-ring-icon ${isActive ? 'spinning' : ''}">${isActive ? '🌀' : '💤'}</span>
+                  </div>
+                </div>
+                <div class="fan-ring-info tabular-nums">
+                  <span class="fan-ring-name">${row.label}</span>
+                  <span class="fan-ring-val js-fan-val" style="color: ${isActive ? 'var(--text-primary)' : 'var(--text-muted)'};">${row.formattedValue}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    box = container.querySelector('.summary-matrix-container.variant-fans-ios');
+  } else {
+    // In-place güncelleme
+    const badgeEl = box.querySelector('.fans-ios-badge');
+    if (badgeEl) {
+      badgeEl.innerHTML = `🌀 Aktif: <strong>${activeCount}</strong> / ${rows.length} Fan`;
+    }
+    const cardEls = box.querySelectorAll('.fan-ring-card');
+    rows.forEach((row, idx) => {
+      const el = cardEls[idx];
+      if (!el) return;
+      const isActive = Number.isFinite(row.value) && row.value > 0;
+      el.className = `fan-ring-card ${isActive ? 'is-active' : 'is-idle'}`;
+      const circleEl = el.querySelector('.js-fan-stroke');
+      if (circleEl) {
+        const rad = 20;
+        const circ = 2 * Math.PI * rad;
+        const pct = Math.min(100, Math.max(0, row.pct || 0));
+        const strokeOffset = circ - (pct / 100) * circ;
+        circleEl.style.strokeDashoffset = strokeOffset;
+        circleEl.style.stroke = isActive ? (row.color || 'var(--accent-green)') : 'rgba(255,255,255,0.08)';
+      }
+      const valEl = el.querySelector('.js-fan-val');
+      if (valEl) {
+        valEl.textContent = row.formattedValue;
+        valEl.style.color = isActive ? 'var(--text-primary)' : 'var(--text-muted)';
+      }
+    });
   }
 }
 
@@ -139,14 +233,18 @@ function renderTilesVariant(container, data, rows, topBarHtml) {
       <!-- Ana Vurgu Başlık Kartı -->
       <div class="matrix-tile-hero" style="border-left: 3px solid ${mainRow.valColor || 'var(--accent-blue)'};">
         <div>
-          <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">${mainRow.label}</span>
+          <span class="matrix-tile-hero-title">${mainRow.label}</span>
           <div class="matrix-tile-hero-val tabular-nums" style="color: ${mainRow.valColor || 'var(--text-primary)'};">
             ${mainRow.formattedValue}
           </div>
         </div>
-        <div style="text-align: right;">
-          <span class="matrix-badge ${mainRow.badgeCls || 'up'}" style="font-size: 11px; padding: 3px 8px;">${mainRow.badge || 'Canlı'}</span>
-          <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Tepe: ${mainRow.maxFormatted || '-'}</div>
+        <div class="matrix-tile-hero-right">
+          <div class="matrix-tile-hero-stats tabular-nums">
+            <div class="minmax-pill" title="Minimum Değer"><span class="minmax-lbl">MİN</span><strong>${mainRow.minFormatted || data.formattedMin || '-'}</strong></div>
+            <div class="minmax-pill" title="Ortalama Değer"><span class="minmax-lbl">ORT</span><strong>${mainRow.avgFormatted || data.formattedAvg || '-'}</strong></div>
+            <div class="minmax-pill" title="Maksimum Değer"><span class="minmax-lbl">MAKS</span><strong>${mainRow.maxFormatted || data.formattedMax || '-'}</strong></div>
+          </div>
+          <span class="matrix-badge ${mainRow.badgeCls || 'up'}" style="font-size: 10px; padding: 2px 7px;">${mainRow.badge || 'Canlı'}</span>
         </div>
       </div>
 
@@ -202,7 +300,30 @@ function renderGaugeVariant(container, data, rows, topBarHtml) {
   const main = rows[0] || { value: 50, formattedValue: '50 °C' };
   const subRows = rows.slice(1);
   const curVal = Number.isFinite(main.value) ? main.value : 50;
-  const pct = Math.min(100, Math.max(0, ((curVal - 25) / 65) * 100));
+
+  const cardType = data.cardType || (
+    data.name && data.name.includes('CPU') ? 'cpu' :
+    data.name && (data.name.includes('GeForce') || data.name.includes('GPU')) ? 'gpu' :
+    data.name && data.name.includes('Bellek') ? 'ram' :
+    data.name && data.name.includes('Anakart') ? 'board' :
+    data.name && data.name.includes('Güç') ? 'psu' :
+    data.name && data.name.includes('Fan') ? 'fans' : 'cpu'
+  );
+
+  let gaugeUnit = '°C';
+  if (cardType === 'fans' || String(main.formattedValue || '').includes('RPM')) {
+    gaugeUnit = 'RPM';
+  } else if (cardType === 'psu' || String(main.formattedValue || '').includes('W')) {
+    gaugeUnit = 'W';
+  } else if (cardType === 'ram' || String(main.formattedValue || '').includes('%')) {
+    gaugeUnit = '%';
+  } else if (String(main.formattedValue || '').includes('V')) {
+    gaugeUnit = 'V';
+  }
+
+  const pct = Number.isFinite(main.pct)
+    ? Math.min(100, Math.max(0, main.pct))
+    : Math.min(100, Math.max(0, ((curVal - 25) / 65) * 100));
 
   // Dairesel ibre açı hesaplama: -120deg to +120deg (240deg total sweep)
   const angle = -120 + (pct / 100) * 240;
@@ -222,9 +343,9 @@ function renderGaugeVariant(container, data, rows, topBarHtml) {
             <circle cx="55" cy="55" r="${rad}" fill="none" stroke="${main.valColor || 'var(--accent-blue)'}" stroke-width="8" stroke-dasharray="${strokeDash} ${circ}" stroke-dashoffset="${strokeOffset}" transform="rotate(150 55 55)" stroke-linecap="round" style="transition: stroke-dashoffset 0.4s ease;"/>
           </svg>
           <div class="matrix-gauge-center">
-            <span class="matrix-gauge-big-num tabular-nums">${curVal.toFixed(0)}</span>
-            <span class="matrix-gauge-unit">°C</span>
-            <span class="matrix-gauge-tag">${main.badge || 'Anlık'}</span>
+            <span class="matrix-gauge-big-num tabular-nums">${Math.round(curVal)}</span>
+            <span class="matrix-gauge-unit">${gaugeUnit}</span>
+            <span class="matrix-gauge-tag">${main.badge || (cardType === 'psu' ? 'Tahmini' : 'Anlık')}</span>
           </div>
         </div>
 

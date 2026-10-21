@@ -64,111 +64,62 @@ function renderPopoverContent(data, allSensors, isLiveMode, rebuildSelectors) {
     renderSmoothLineCore(miniBox, data, { strokeMode: 'blue', showYAxis: false, showArea: true, height: 76 });
   }
 
-  const meta = getChartMeta(data.chartCode);
   if (hintEl) {
-    hintEl.textContent = `${data.hardware || 'Donanım'} · ${data.type || 'Telemetri'} · ${getNeedsLabel(meta.needs)}`;
+    hintEl.textContent = `${data.hardware || 'Donanım'} · Sabit Özet Telemetri Analizi`;
   }
   if (titleEl) {
-    // Madde 8: Seçili sensörün adı ve anlık değeri
     titleEl.textContent = `${data.name} — ${data.formattedValue || '-'}`;
   }
   if (deleteBtn) {
-    deleteBtn.style.display = isLiveMode ? 'inline-flex' : 'none';
+    deleteBtn.style.display = 'none'; // Sabit kartlar popover üzerinden silinmez
   }
-
-  if (configBox && rebuildSelectors) {
-    const showMulti = meta.needs === 'multi' && isLiveMode && allSensors.length > 1;
-    const secondaryIds = Array.isArray(data.secondarySensorIds) ? data.secondarySensorIds : [];
-
-    configBox.innerHTML = `
-      ${isLiveMode && allSensors.length > 0 ? `
-        <div>
-          <label style="font-weight:600;display:block;margin-bottom:3px;">Birincil Sensör:</label>
-          <select id="popSensorSelect">
-            ${allSensors.map(s => `<option value="${s.id}" ${s.id === data.sensorId ? 'selected' : ''}>${s.name} (${s.hardware} · ${s.formattedValue})</option>`).join('')}
-          </select>
-        </div>
-      ` : ''}
-      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:6px;">
-        <div>
-          <label style="font-weight:600;display:block;margin-bottom:3px;">Grafik Motoru:</label>
-          <select id="popChartSelect">
-            ${CHART_POOL.map(c => `<option value="${c.code}" ${c.code === data.chartCode ? 'selected' : ''}>${c.name}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label style="font-weight:600;display:block;margin-bottom:3px;">Kart İskeleti:</label>
-          <select id="popSkeletonSelect">
-            ${SKELETON_POOL.map(s => `<option value="${s.code}" ${s.code === data.skeleton ? 'selected' : ''}>${s.name}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-      ${showMulti ? `
-        <div>
-          <label style="font-weight:600;display:block;margin-bottom:3px;color:#6366F1;">Karşılaştırılacak Ek Sensörler (Çoklu Grafik):</label>
-          <select id="popMultiSensorSelect" multiple size="3" style="height:64px;">
-            ${allSensors.filter(s => s.id !== data.sensorId).map(s => `
-              <option value="${s.id}" ${secondaryIds.includes(s.id) ? 'selected' : ''}>${s.name} (${s.formattedValue})</option>
-            `).join('')}
-          </select>
-          <div style="font-size:10px;opacity:0.75;margin-top:2px;">Ctrl/Cmd ile birden fazla sensör seçebilirsiniz. Seçilmezse aynı donanımdaki kardeş sensörler kullanılır.</div>
-        </div>
-      ` : ''}
-    `;
-
-    configBox.querySelector('#popSensorSelect')?.addEventListener('change', (e) => {
-      if (callbacks.onChangeSensor) {
-        const updated = callbacks.onChangeSensor(data.id, e.target.value);
-        if (updated) renderPopoverContent(updated, allSensors, isLiveMode, true);
-      }
-    });
-
-    configBox.querySelector('#popChartSelect')?.addEventListener('change', (e) => {
-      if (callbacks.onChangeChart) {
-        const updated = callbacks.onChangeChart(data.id, e.target.value);
-        if (updated) renderPopoverContent(updated, allSensors, isLiveMode, true);
-      }
-    });
-
-    configBox.querySelector('#popSkeletonSelect')?.addEventListener('change', (e) => {
-      if (callbacks.onChangeSkeleton) {
-        const updated = callbacks.onChangeSkeleton(data.id, e.target.value);
-        if (updated) renderPopoverContent(updated, allSensors, isLiveMode, true);
-      }
-    });
-
-    configBox.querySelector('#popMultiSensorSelect')?.addEventListener('change', (e) => {
-      const selected = Array.from(e.target.selectedOptions).map(o => o.value).slice(0, 4);
-      if (callbacks.onChangeSecondarySensors) {
-        const updated = callbacks.onChangeSecondarySensors(data.id, selected);
-        if (updated) renderPopoverContent(updated, allSensors, isLiveMode, false);
-      }
-    });
+  if (configBox) {
+    configBox.style.display = 'none'; // Seçiciler gizli
+    configBox.innerHTML = '';
   }
 
   if (listEl) {
-    const val = Number.isFinite(data.value) ? data.value : 65;
-    const max = Math.max(Number.isFinite(data.max) ? data.max : 100, val, 1);
-    const avg = Number.isFinite(data.avg) ? data.avg : val * 0.8;
-    const min = Number.isFinite(data.min) ? data.min : val * 0.5;
-
-    const rows = [
-      { no: '01', name: 'Anlık Okuma', text: data.formattedValue || '-', pct: Math.min(100, Math.max(8, (val / max) * 100)) },
-      { no: '02', name: 'Kümülatif Ortalama', text: data.formattedAvg || '-', pct: Math.min(100, Math.max(8, (avg / max) * 100)) },
-      { no: '03', name: 'Tepe (Maksimum)', text: data.formattedMax || '-', pct: 100 },
-      { no: '04', name: 'Taban (Minimum)', text: data.formattedMin || '-', pct: Math.min(100, Math.max(8, (min / max) * 100)) }
-    ];
-
-    listEl.innerHTML = rows.map(r => `
-      <div class="tabular-nums">
-        <div class="popover-row-top">
-          <span><strong style="opacity:0.5;font-family:var(--font-mono);margin-right:6px;">${r.no}</strong>${r.name}</span>
-          <span class="popover-row-pct">${r.text}</span>
+    if (Array.isArray(data.matrixRows) && data.matrixRows.length > 0) {
+      // M1 Sabit Özet Kartı Detayı: Tüm alt sensörlerin detay listesi
+      listEl.innerHTML = data.matrixRows.map((r, idx) => `
+        <div class="tabular-nums" style="margin-bottom: 8px;">
+          <div class="popover-row-top">
+            <span>
+              <strong style="opacity:0.5;font-family:var(--font-mono);margin-right:6px;">0${idx + 1}</strong>
+              <span style="margin-right:4px;">${r.icon || '💠'}</span>${r.label}
+            </span>
+            <span class="popover-row-pct" style="color: ${r.valColor || 'var(--text-primary)'}; font-weight:600;">${r.formattedValue}</span>
+          </div>
+          <div class="popover-row-bar">
+            <div class="popover-row-bar-fill" style="width:${Math.min(100, Math.max(4, r.pct || 0))}%; background: ${r.color || 'var(--accent-blue)'};"></div>
+          </div>
         </div>
-        <div class="popover-row-bar">
-          <div class="popover-row-bar-fill" style="width:${r.pct.toFixed(0)}%;"></div>
+      `).join('');
+    } else {
+      // Standart Metrik İstatistikleri
+      const val = Number.isFinite(data.value) ? data.value : 65;
+      const max = Math.max(Number.isFinite(data.max) ? data.max : 100, val, 1);
+      const avg = Number.isFinite(data.avg) ? data.avg : val * 0.8;
+      const min = Number.isFinite(data.min) ? data.min : val * 0.5;
+
+      const rows = [
+        { no: '01', name: 'Anlık Okuma', text: data.formattedValue || '-', pct: Math.min(100, Math.max(8, (val / max) * 100)) },
+        { no: '02', name: 'Kümülatif Ortalama', text: data.formattedAvg || '-', pct: Math.min(100, Math.max(8, (avg / max) * 100)) },
+        { no: '03', name: 'Tepe (Maksimum)', text: data.formattedMax || '-', pct: 100 },
+        { no: '04', name: 'Taban (Minimum)', text: data.formattedMin || '-', pct: Math.min(100, Math.max(8, (min / max) * 100)) }
+      ];
+
+      listEl.innerHTML = rows.map(r => `
+        <div class="tabular-nums">
+          <div class="popover-row-top">
+            <span><strong style="opacity:0.5;font-family:var(--font-mono);margin-right:6px;">${r.no}</strong>${r.name}</span>
+            <span class="popover-row-pct">${r.text}</span>
+          </div>
+          <div class="popover-row-bar">
+            <div class="popover-row-bar-fill" style="width:${r.pct.toFixed(0)}%;"></div>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `).join('');
+    }
   }
 }

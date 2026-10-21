@@ -395,6 +395,10 @@ public class WebServerService : IDisposable
             ".json" => "application/json; charset=utf-8",
             ".png" => "image/png",
             ".ico" => "image/x-icon",
+            ".ttf" => "font/ttf",
+            ".otf" => "font/otf",
+            ".woff" => "font/woff",
+            ".woff2" => "font/woff2",
             _ => "application/octet-stream"
         };
 

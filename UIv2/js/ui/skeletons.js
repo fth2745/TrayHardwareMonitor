@@ -43,10 +43,18 @@ function buildChartSelectHtml(activeCode) {
   ).join('');
 }
 
+export const FEATURE_FLAGS = {
+  allowInlineChartSelect: false,
+  allowSpanCycle: false,
+  allowSensorPick: false,
+  allowCardDelete: false,
+  allowCatalog: false
+};
+
 function buildSensorTriggerHtml(data, isLiveMode) {
-  const title = data.name || 'Sensör Seç';
-  if (!isLiveMode) {
-    return `<span style="font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span>`;
+  const title = data.name || 'Özet Tablosu';
+  if (!isLiveMode || !FEATURE_FLAGS.allowSensorPick) {
+    return `<span class="card-fixed-title js-sensor-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span>`;
   }
   return `
     <button class="card-sensor-btn js-pick-sensor-btn" type="button" title="Sensörü Değiştir (Tıkla)">
@@ -60,19 +68,32 @@ function buildSensorTriggerHtml(data, isLiveMode) {
 export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
   const skeleton = data.skeleton || 'S-bento';
   const chartCode = normalizeChartCode(data.chartCode);
-  el.className = `uiv2-card ${skeleton} ${data.span || 'span-4'}`;
+  el.className = `uiv2-card ${skeleton} ${data.span || 'span-6'}`;
   el.dataset.skeleton = skeleton;
-  el.dataset.span = data.span || 'span-4';
+  el.dataset.span = data.span || 'span-6';
   el.dataset.chartCode = chartCode;
   el.dataset.m1Variant = data.m1Variant || '';
   el.dataset.sensorId = data.sensorId || '';
 
   const { num, unit } = splitNumberAndUnit(data.formattedValue);
   const delta = computeAccessibleDelta(data);
-  const meta = getChartMeta(chartCode);
-  const chartOptionsHtml = buildChartSelectHtml(chartCode);
   const sensorTriggerHtml = buildSensorTriggerHtml(data, isLiveMode);
-  const removeBtnHtml = isLiveMode
+
+  const isFans = data.cardType === 'fans' || (data.name && data.name.includes('Fan'));
+  const isM1 = chartCode === 'M1';
+  const m1Variant = data.m1Variant || 'hybrid';
+  const hideBigValue = isM1 && (isFans || m1Variant === 'tiles' || m1Variant === 'gauge');
+  const showMinMaxPills = !hideBigValue && m1Variant !== 'minimal';
+
+  const chartSelectHtml = FEATURE_FLAGS.allowInlineChartSelect
+    ? `<select class="js-inline-chart-select ctrl-select" style="padding:2px 5px;font-size:10px;border-radius:6px;" title="Grafik Motoru">${buildChartSelectHtml(chartCode)}</select>`
+    : '';
+
+  const cycleSpanBtnHtml = FEATURE_FLAGS.allowSpanCycle
+    ? `<button class="icon-btn-ghost js-cycle-span" type="button" title="Genişlik">⇔</button>`
+    : '';
+
+  const removeBtnHtml = (isLiveMode && FEATURE_FLAGS.allowCardDelete)
     ? `<button class="icon-btn-danger js-remove-card" type="button" title="Kartı Kaldır">×</button>`
     : '';
 
@@ -80,18 +101,13 @@ export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
     // S-minimal: Simetrik Ortalanmış Minimal İskelet
     el.innerHTML = `
       <div class="s-minimal-header">
-        <div class="card-corner-left">
-          <span class="chart-code-pill">${chartCode}</span>
-        </div>
         <div class="card-corner-actions">
-          <select class="js-inline-chart-select ctrl-select" style="padding:2px 5px;font-size:10px;border-radius:6px;" title="Grafik Motoru">
-            ${chartOptionsHtml}
-          </select>
-          <button class="icon-btn-ghost js-cycle-span" type="button" title="Genişlik">⇔</button>
+          ${chartSelectHtml}
+          ${cycleSpanBtnHtml}
           <button class="icon-btn-blue js-open-popover" type="button" title="Detay">⤢</button>
           ${removeBtnHtml}
         </div>
-        <div class="s-minimal-value"><span class="js-val-num">${num}</span><span class="unit-suffix js-val-unit">${unit}</span></div>
+        ${hideBigValue ? '' : `<div class="s-minimal-value"><span class="js-val-num">${num}</span><span class="unit-suffix js-val-unit">${unit}</span></div>`}
         <div class="s-minimal-subtitle">
           ${sensorTriggerHtml}
         </div>
@@ -105,11 +121,10 @@ export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
       <div class="hero-main">
         <div class="hero-top-bar">
           <div class="hero-title">
-            <span class="chart-code-pill" style="background:rgba(255,255,255,0.2);color:var(--text-on-hero);">${chartCode}</span>
             ${sensorTriggerHtml}
           </div>
           <div class="card-action-btns">
-            <button class="icon-btn-ghost js-cycle-span" type="button" style="color:var(--text-on-hero);" title="Genişlik">⇔</button>
+            ${cycleSpanBtnHtml}
             <button class="icon-btn-ghost js-open-popover" type="button" style="color:var(--text-on-hero);" title="Detay">⤢</button>
             ${removeBtnHtml}
           </div>
@@ -124,9 +139,7 @@ export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
       </div>
       <div class="hero-bottom-band tabular-nums">
         <span>Ort: <strong class="js-avg-text">${data.formattedAvg || '-'}</strong> · Maks: <strong class="js-max-text">${data.formattedMax || '-'}</strong></span>
-        <select class="js-inline-chart-select ctrl-select" style="padding:2px 6px;font-size:10px;background:rgba(0,0,0,0.22);color:var(--text-on-hero);border-color:rgba(255,255,255,0.2);">
-          ${chartOptionsHtml}
-        </select>
+        ${chartSelectHtml}
       </div>
     `;
   } else if (skeleton === 'S-row') {
@@ -137,7 +150,6 @@ export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
         <div class="s-row-icon">${icon}</div>
         <div style="min-width:0;">
           <div style="display:flex;align-items:center;gap:5px;">
-            <span class="chart-code-pill">${chartCode}</span>
             ${sensorTriggerHtml}
           </div>
           <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -150,9 +162,7 @@ export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
           <span class="delta-chip ${delta.cls} js-delta-chip" style="font-size:9.5px;padding:1px 6px;">${delta.text}</span>
         </div>
         <div class="card-action-btns">
-          <select class="js-inline-chart-select ctrl-select" style="padding:2px 4px;font-size:10px;border-radius:6px;">
-            ${chartOptionsHtml}
-          </select>
+          ${chartSelectHtml}
           <button class="icon-btn-blue js-open-popover" type="button" title="Detay">⤢</button>
           ${removeBtnHtml}
         </div>
@@ -163,25 +173,32 @@ export function renderCardSkeletonHtml(el, data, { isLiveMode = true }) {
     el.innerHTML = `
       <div>
         <div class="s-bento-top">
-          <div class="s-bento-title" title="${data.hardware} — ${data.name}">
-            <span class="chart-code-pill">${chartCode}</span>
-            <span class="needs-badge ${meta.needs}" title="Veri Gereksinimi">${meta.needs === 'multi' ? 'Çoklu' : 'Tek'}</span>
+          <div class="s-bento-title" title="${data.hardware || ''} — ${data.name || ''}">
             ${sensorTriggerHtml}
           </div>
           <div class="card-action-btns">
-            <select class="js-inline-chart-select ctrl-select" style="padding:2px 5px;font-size:10px;border-radius:6px;" title="Grafik Motoru Değiştir">
-              ${chartOptionsHtml}
-            </select>
-            <button class="icon-btn-ghost js-cycle-span" type="button" title="Genişlik">⇔</button>
-            <button class="icon-btn-blue js-open-popover" type="button" title="Detay & Çoklu Sensör">⤢</button>
+            ${chartSelectHtml}
+            ${cycleSpanBtnHtml}
+            <button class="icon-btn-blue js-open-popover" type="button" title="Detay">⤢</button>
             ${removeBtnHtml}
           </div>
         </div>
         ${data.hasH6Pills ? renderH6PillsHtml(data) : ''}
-        <div class="s-bento-metric-row">
-          <div class="s-bento-big-number"><span class="js-val-num">${num}</span><span class="unit-suffix js-val-unit">${unit}</span></div>
-          <span class="delta-chip ${delta.cls} js-delta-chip">${delta.text}</span>
-        </div>
+        ${hideBigValue ? '' : `
+          <div class="s-bento-metric-row">
+            <div class="s-bento-metric-left">
+              <div class="s-bento-big-number"><span class="js-val-num">${num}</span><span class="unit-suffix js-val-unit">${unit}</span></div>
+              <span class="delta-chip ${delta.cls} js-delta-chip">${delta.text}</span>
+            </div>
+            ${showMinMaxPills ? `
+              <div class="s-bento-minmax-group tabular-nums">
+                <div class="minmax-pill" title="Minimum Değer"><span class="minmax-lbl">MİN</span><strong class="js-min-text">${data.formattedMin || '-'}</strong></div>
+                <div class="minmax-pill" title="Ortalama Değer"><span class="minmax-lbl">ORT</span><strong class="js-avg-text">${data.formattedAvg || '-'}</strong></div>
+                <div class="minmax-pill" title="Maksimum Değer"><span class="minmax-lbl">MAKS</span><strong class="js-max-text">${data.formattedMax || '-'}</strong></div>
+              </div>
+            ` : ''}
+          </div>
+        `}
       </div>
       <div class="card-viz-area js-viz-container"></div>
     `;
