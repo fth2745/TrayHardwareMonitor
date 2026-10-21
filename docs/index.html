@@ -3,32 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tray Hardware Monitor — Hafif & Canlı Sistem Tepsisi Donanım İzleyici</title>
-  <meta name="description" content="LibreHardwareMonitorLib tabanlı, ultra hafif (<%0.1 CPU, ~25MB RAM), canlı dinamik simgeli ve akıcı animasyonlu modern Windows donanım izleme aracı.">
+  <title>Tray Hardware Monitor (v2.1) — Canlı Sistem Tepsisi & Bento UI v2 Telemetri</title>
+  <meta name="description" content="LibreHardwareMonitorLib tabanlı, ultra hafif (<%0.1 CPU, ~42-78MB Private RAM), canlı dinamik simgeli, UAC uyarısız başlangıçlı ve modern Bento UI v2 yerel web kontrol paneli.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   
   <style>
     :root {
-      --bg: #090b10;
-      --bg-card: #121620;
-      --bg-card-hover: #171d2b;
+      --bg: #07090e;
+      --bg-card: rgba(18, 22, 34, 0.72);
+      --bg-card-hover: rgba(25, 31, 48, 0.85);
       --border: rgba(255, 255, 255, 0.08);
-      --border-glow: rgba(0, 210, 255, 0.3);
-      --accent: #00d2ff;
-      --accent-grad: linear-gradient(135deg, #00d2ff 0%, #7928ca 100%);
-      --text: #e6edf3;
-      --text-muted: #8b949e;
+      --border-focus: rgba(56, 189, 248, 0.4);
+      --accent: #38bdf8;
+      --accent-grad: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
       --green: #46e682;
-      --amber: #ffb923;
-      --red: #ff4b4b;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --cyan: #06b6d4;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -39,33 +46,48 @@
       overflow-x: hidden;
     }
 
-    /* Glow background */
-    .glow-bg {
+    /* Ambient Glows */
+    .ambient-glow-1 {
       position: absolute;
-      top: -200px;
+      top: -160px;
       left: 50%;
       transform: translateX(-50%);
-      width: 800px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(121, 40, 202, 0.1) 40%, transparent 70%);
-      filter: blur(80px);
+      width: 900px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(129, 140, 248, 0.08) 45%, transparent 70%);
+      filter: blur(90px);
       pointer-events: none;
       z-index: 0;
     }
 
+    .ambient-glow-2 {
+      position: absolute;
+      top: 1400px;
+      right: -100px;
+      width: 650px;
+      height: 650px;
+      background: radial-gradient(circle, rgba(70, 230, 130, 0.08) 0%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header & Navigation */
     header {
       position: sticky;
       top: 0;
-      backdrop-filter: blur(12px);
-      background: rgba(9, 11, 16, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(7, 9, 14, 0.82);
       border-bottom: 1px solid var(--border);
       z-index: 100;
+      transition: all 0.2s;
     }
 
     .nav-container {
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 16px 24px;
+      padding: 14px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -75,37 +97,49 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 700;
       color: #fff;
       text-decoration: none;
     }
 
-    .brand-icon {
-      width: 32px;
-      height: 32px;
-      background: #1c2230;
-      border: 1px solid rgba(70, 230, 130, 0.4);
-      border-radius: 8px;
+    .brand-icon-box {
+      width: 34px;
+      height: 34px;
+      background: rgba(18, 22, 34, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      color: var(--green);
+      color: var(--accent);
       font-size: 0.95rem;
-      box-shadow: 0 0 12px rgba(70, 230, 130, 0.2);
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+
+    .brand-ver {
+      font-size: 0.72rem;
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-weight: 700;
+      margin-left: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
     }
 
     .nav-links {
       display: flex;
-      gap: 20px;
+      gap: 22px;
       align-items: center;
     }
 
     .nav-link {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
+      font-weight: 500;
       transition: color 0.2s;
     }
 
@@ -117,29 +151,29 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--border);
       color: #fff;
       padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.9rem;
+      border-radius: 9px;
+      font-size: 0.88rem;
       font-weight: 600;
       text-decoration: none;
       transition: all 0.2s;
     }
 
     .btn-github:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.12);
       border-color: rgba(255, 255, 255, 0.2);
       transform: translateY(-1px);
     }
 
-    /* Hero */
+    /* Hero Section */
     .hero {
       position: relative;
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 90px 24px 60px;
+      padding: 85px 24px 50px;
       text-align: center;
       z-index: 1;
     }
@@ -147,23 +181,31 @@
     .badge-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      background: rgba(0, 210, 255, 0.08);
-      border: 1px solid rgba(0, 210, 255, 0.25);
+      gap: 9px;
+      padding: 6px 16px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 30px;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       color: var(--accent);
       font-weight: 600;
       margin-bottom: 24px;
     }
 
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+    }
+
     .hero-title {
-      font-size: 3.5rem;
+      font-size: 3.6rem;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.035em;
       line-height: 1.15;
-      margin-bottom: 20px;
+      margin-bottom: 22px;
     }
 
     .gradient-text {
@@ -173,11 +215,12 @@
     }
 
     .hero-subtitle {
-      font-size: 1.25rem;
+      font-size: 1.22rem;
       color: var(--text-muted);
-      max-width: 680px;
-      margin: 0 auto 36px;
+      max-width: 760px;
+      margin: 0 auto 38px;
       font-weight: 400;
+      line-height: 1.65;
     }
 
     .hero-buttons {
@@ -185,7 +228,7 @@
       justify-content: center;
       gap: 16px;
       flex-wrap: wrap;
-      margin-bottom: 60px;
+      margin-bottom: 50px;
     }
 
     .btn-primary {
@@ -194,18 +237,18 @@
       gap: 10px;
       background: var(--accent-grad);
       color: #fff;
-      padding: 14px 28px;
-      border-radius: 10px;
-      font-size: 1.05rem;
+      padding: 13px 28px;
+      border-radius: 11px;
+      font-size: 1.02rem;
       font-weight: 700;
       text-decoration: none;
-      box-shadow: 0 10px 25px rgba(0, 210, 255, 0.3);
+      box-shadow: 0 8px 24px rgba(56, 189, 248, 0.32);
       transition: all 0.25s;
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 15px 35px rgba(0, 210, 255, 0.45);
+      box-shadow: 0 14px 34px rgba(56, 189, 248, 0.45);
     }
 
     .btn-secondary {
@@ -215,9 +258,9 @@
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
       color: #fff;
-      padding: 14px 26px;
-      border-radius: 10px;
-      font-size: 1.05rem;
+      padding: 13px 26px;
+      border-radius: 11px;
+      font-size: 1.02rem;
       font-weight: 600;
       text-decoration: none;
       transition: all 0.2s;
@@ -228,36 +271,376 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* Interactive Demo Box */
+    .hero-highlights {
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      padding-top: 10px;
+    }
+
+    .hero-highlight-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-highlight-item strong {
+      color: #fff;
+    }
+
+    /* Dual Tab Interactive Demo Container */
     .demo-section {
-      max-width: 900px;
-      margin: 0 auto 80px;
+      max-width: 1020px;
+      margin: 0 auto 90px;
       padding: 0 24px;
-    }
-
-    .demo-wrapper {
-      background: #11141d;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
       position: relative;
+      z-index: 2;
     }
 
-    .demo-header {
+    .demo-card-outer {
+      background: rgba(14, 18, 28, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(56, 189, 248, 0.06);
+    }
+
+    .demo-nav-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      font-size: 0.9rem;
-      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .demo-canvas {
-      background: #191c24;
-      border: 1px dashed rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      height: 380px;
+    .demo-tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 4px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      gap: 4px;
+    }
+
+    .demo-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .demo-tab-btn.active {
+      background: rgba(56, 189, 248, 0.16);
+      color: #fff;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .demo-tag-hint {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+    }
+
+    .demo-tag-hint b {
+      color: var(--accent);
+    }
+
+    /* Bento UI Card Simulated Canvas */
+    .bento-demo-stage {
+      background: #090c13;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 24px;
+      min-height: 440px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Simulated Bento Card */
+    .sim-card {
+      width: 100%;
+      max-width: 580px;
+      background: rgba(18, 24, 38, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      transition: all 0.25s;
+    }
+
+    .sim-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .sim-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sim-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .sim-btn-icon {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    /* Metric Hero Row */
+    .sim-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sim-big-num {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .sim-unit {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .sim-delta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(70, 230, 130, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(70, 230, 130, 0.3);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .sim-minmax-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .sim-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 4px 9px;
+      text-align: right;
+    }
+
+    .sim-pill-lbl {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--text-sub);
+      font-weight: 700;
+    }
+
+    .sim-pill-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    /* Variant Selector Switcher inside card */
+    .sim-variant-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .sim-variant-tag {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+
+    .sim-variant-pills {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      gap: 3px;
+    }
+
+    .sim-v-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .sim-v-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      color: #fff;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    /* Sparkline SVG */
+    .sim-sparkline-box {
+      width: 100%;
+      height: 52px;
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .sim-sparkline-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Progress Rows (Pixel-perfect aligned) */
+    .sim-rows-col {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .sim-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.84rem;
+    }
+
+    .sim-row-label {
+      flex: 0 0 148px;
+      width: 148px;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+
+    .sim-row-track {
+      flex: 1 1 auto;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sim-row-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .sim-row-val {
+      flex: 0 0 80px;
+      width: 80px;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* HUD Tiles Variant Content */
+    .sim-hud-tiles-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .sim-hud-tile {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .sim-hud-tile-lbl {
+      font-size: 0.72rem;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .sim-hud-tile-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    /* Minimalist Variant */
+    .sim-minimal-box {
+      padding: 8px 0;
+    }
+
+    /* Gauge Variant */
+    .sim-gauge-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+    }
+
+    /* System Tray Mockup Tab Content */
+    .tray-demo-stage {
+      background: #10141f;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      height: 440px;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -267,7 +650,7 @@
       user-select: none;
     }
 
-    .demo-instruction {
+    .tray-instruction {
       position: absolute;
       top: 30px;
       text-align: center;
@@ -275,16 +658,14 @@
       font-size: 0.95rem;
     }
 
-    .demo-instruction span {
-      color: var(--accent);
-      font-weight: 600;
+    .tray-instruction b {
+      color: var(--green);
     }
 
-    /* Windows Taskbar Mockup */
     .taskbar-mockup {
       width: 100%;
       height: 52px;
-      background: rgba(18, 20, 26, 0.95);
+      background: rgba(14, 18, 26, 0.96);
       border-top: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
@@ -294,17 +675,15 @@
       z-index: 10;
     }
 
-    .taskbar-icon {
+    .taskbar-sys-icon {
       color: #8b949e;
-      font-size: 1.1rem;
-      cursor: default;
+      font-size: 1.05rem;
     }
 
-    /* Dynamic Tray Icon in Demo */
-    .tray-target {
+    .tray-live-target {
       width: 28px;
       height: 28px;
-      background: #1c1f26;
+      background: #1c2230;
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -314,50 +693,49 @@
       font-size: 0.85rem;
       color: var(--green);
       cursor: pointer;
-      border: 1px solid rgba(70, 230, 130, 0.4);
-      box-shadow: 0 0 10px rgba(70, 230, 130, 0.25);
+      border: 1px solid rgba(70, 230, 130, 0.5);
+      box-shadow: 0 0 12px rgba(70, 230, 130, 0.3);
       transition: all 0.2s;
     }
 
-    .tray-target:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 14px rgba(70, 230, 130, 0.4);
+    .tray-live-target:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 16px rgba(70, 230, 130, 0.5);
     }
 
-    /* Mini Card Mockup */
-    .mini-card-mockup {
+    /* Mini Card Popup on Hover */
+    .tray-hover-card {
       position: absolute;
       bottom: 64px;
       right: 20px;
       width: 320px;
-      background: #1c1e24;
-      border: 1px solid rgba(60, 68, 85, 0.9);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-      border-radius: 0;
+      background: #171b24;
+      border: 1px solid rgba(70, 80, 105, 0.85);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
       opacity: 0;
       visibility: hidden;
-      transition: opacity 0.16s ease, visibility 0.16s;
+      transition: opacity 0.18s ease, visibility 0.18s;
       z-index: 20;
       text-align: left;
     }
 
-    .mini-card-mockup.visible {
+    .tray-hover-card.visible {
       opacity: 1;
       visibility: visible;
     }
 
-    .mini-card-bar {
+    .tray-hover-bar {
       height: 3px;
-      background: linear-gradient(90deg, #00b4ff, #785aff);
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
       width: 100%;
     }
 
-    .mini-card-content {
-      padding: 12px 14px 10px;
+    .tray-hover-body {
+      padding: 14px 16px 12px;
     }
 
-    .mini-card-title {
-      color: #00b4ff;
+    .tray-hover-head {
+      color: #38bdf8;
       font-size: 0.95rem;
       font-weight: 700;
       margin-bottom: 12px;
@@ -366,56 +744,52 @@
       gap: 6px;
     }
 
-    .mini-card-row {
+    .tray-hover-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 5px 0;
-      border-bottom: 1px solid rgba(40, 44, 54, 0.9);
-      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.86rem;
     }
 
-    .mini-card-row:last-child {
+    .tray-hover-row:last-child {
       border-bottom: none;
     }
 
-    .mini-card-label {
-      color: #d7dce4;
+    .tray-hover-label {
+      color: #cbd5e1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 195px;
+      max-width: 190px;
     }
 
-    .mini-card-val {
-      font-weight: 700;
+    .tray-hover-val {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
+      font-weight: 700;
     }
 
-    .val-green { color: var(--green); }
-    .val-blue { color: #64beff; }
-    .val-amber { color: var(--amber); }
-
-    .mini-card-footer {
-      font-size: 0.75rem;
-      color: #828c9b;
+    .tray-hover-footer {
+      font-size: 0.74rem;
+      color: var(--text-sub);
       font-style: italic;
       margin-top: 10px;
     }
 
-    /* Modal for Detail Report Demo */
-    .detail-modal {
+    /* Detail Modal Mockup */
+    .tray-detail-modal {
       position: absolute;
-      top: 20px;
+      top: 24px;
       left: 50%;
       transform: translateX(-50%);
       width: 90%;
       height: 80%;
-      background: #f5f6fa;
-      color: #222;
-      border-radius: 8px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      background: #131722;
+      color: #e2e8f0;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.85);
       display: none;
       flex-direction: column;
       z-index: 50;
@@ -423,147 +797,270 @@
       font-size: 0.85rem;
     }
 
-    .detail-modal.active {
+    .tray-detail-modal.active {
       display: flex;
     }
 
-    .modal-bar {
-      background: #fff;
-      padding: 8px 14px;
-      border-bottom: 1px solid #ddd;
+    .tray-modal-bar {
+      background: #1c2232;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
     }
 
-    .modal-close {
+    .tray-modal-close {
       cursor: pointer;
-      color: #666;
+      color: #94a3b8;
       font-weight: 700;
-      padding: 4px 8px;
+      padding: 2px 8px;
     }
 
-    .modal-close:hover {
-      color: #000;
+    .tray-modal-close:hover {
+      color: #fff;
     }
 
-    .modal-body {
+    .tray-modal-body {
       display: flex;
       flex: 1;
       overflow: hidden;
     }
 
-    .modal-tree {
+    .tray-modal-tree {
       width: 180px;
-      background: #fff;
-      border-right: 1px solid #ddd;
-      padding: 10px;
+      background: #0f131d;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px;
       font-family: monospace;
-      color: #333;
+      color: #94a3b8;
     }
 
-    .modal-table {
+    .tray-modal-table {
       flex: 1;
-      background: #fff;
       overflow-y: auto;
       font-family: monospace;
     }
 
-    .modal-table table {
+    .tray-modal-table table {
       width: 100%;
       border-collapse: collapse;
     }
 
-    .modal-table th {
-      background: #f0f2f5;
-      padding: 6px 10px;
+    .tray-modal-table th {
+      background: #171d2b;
+      padding: 8px 12px;
       text-align: left;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.78rem;
+      color: var(--text-sub);
+    }
+
+    .tray-modal-table td {
+      padding: 6px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       font-size: 0.8rem;
     }
 
-    .modal-table td {
-      padding: 5px 10px;
-      border-bottom: 1px solid #eee;
-      font-size: 0.8rem;
-    }
-
-    /* Features Grid */
-    .features-section {
-      max-width: 1200px;
+    /* 6 Fixed Cards Showcase Grid */
+    .section-wrap {
+      max-width: 1240px;
       margin: 0 auto 100px;
       padding: 0 24px;
     }
 
-    .section-title {
+    .sec-header {
       text-align: center;
-      font-size: 2.2rem;
-      font-weight: 800;
+      margin-bottom: 50px;
+    }
+
+    .sec-pill {
+      display: inline-block;
+      font-size: 0.76rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       margin-bottom: 14px;
-      letter-spacing: -0.02em;
     }
 
-    .section-desc {
-      text-align: center;
+    .sec-title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 12px;
+    }
+
+    .sec-desc {
       color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto 50px;
+      font-size: 1.05rem;
+      max-width: 650px;
+      margin: 0 auto;
     }
 
-    .grid-cards {
+    .bento-showcase-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
     }
 
-    .feature-card {
+    .bento-card-item {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
-      transition: all 0.25s;
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.25s ease;
       position: relative;
+      overflow: hidden;
     }
 
-    .feature-card:hover {
+    .bento-card-item:hover {
       background: var(--bg-card-hover);
-      border-color: rgba(0, 210, 255, 0.3);
+      border-color: rgba(56, 189, 248, 0.3);
       transform: translateY(-4px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
     }
 
-    .feature-icon {
+    .bento-card-icon {
       font-size: 2rem;
       margin-bottom: 16px;
       display: inline-block;
     }
 
-    .feature-title {
-      font-size: 1.25rem;
+    .bento-card-title {
+      font-size: 1.2rem;
       font-weight: 700;
-      margin-bottom: 10px;
       color: #fff;
+      margin-bottom: 8px;
     }
 
-    .feature-text {
+    .bento-card-text {
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       line-height: 1.55;
+      margin-bottom: 16px;
     }
 
-    /* Specs comparison table */
-    .specs-section {
-      max-width: 900px;
-      margin: 0 auto 100px;
-      padding: 0 24px;
+    .bento-card-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
+    .card-mini-tag {
+      font-size: 0.74rem;
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      color: #cbd5e1;
+    }
+
+    /* 4 M1 Variants Feature Section */
+    .variants-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .variant-box {
+      background: rgba(18, 22, 34, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      text-align: left;
+    }
+
+    .variant-box-badge {
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .variant-box-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .variant-box-desc {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    /* Mobile QR Section */
+    .mobile-feature-box {
+      background: linear-gradient(135deg, rgba(18, 24, 38, 0.9) 0%, rgba(15, 20, 32, 0.8) 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .mobile-feature-left {
+      flex: 1 1 340px;
+    }
+
+    .mobile-feature-right {
+      flex: 1 1 300px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mobile-mockup-frame {
+      width: 260px;
+      height: 480px;
+      background: #090c13;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-radius: 36px;
+      padding: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-notch {
+      width: 90px;
+      height: 16px;
+      background: #171d2b;
+      border-radius: 10px;
+      margin: 0 auto 12px;
+    }
+
+    .mobile-screen-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .mobile-mini-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    /* Specs Table */
     .specs-table {
       width: 100%;
       border-collapse: collapse;
       background: var(--bg-card);
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
       border: 1px solid var(--border);
     }
@@ -574,7 +1071,7 @@
     }
 
     .specs-table th {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.035);
       color: var(--text-muted);
       font-weight: 600;
       border-bottom: 1px solid var(--border);
@@ -582,7 +1079,7 @@
 
     .specs-table td {
       border-bottom: 1px solid var(--border);
-      font-size: 0.95rem;
+      font-size: 0.94rem;
     }
 
     .specs-table tr:last-child td {
@@ -595,6 +1092,61 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
+    /* Quickstart Steps */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .step-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      position: relative;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .step-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .step-code {
+      display: block;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--accent);
+      margin-top: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
     /* Footer */
     footer {
       border-top: 1px solid var(--border);
@@ -602,6 +1154,7 @@
       text-align: center;
       color: var(--text-muted);
       font-size: 0.9rem;
+      background: rgba(5, 7, 10, 0.9);
     }
 
     footer a {
@@ -611,33 +1164,40 @@
 
     /* Responsive */
     @media (max-width: 768px) {
-      .hero-title { font-size: 2.5rem; }
+      .hero-title { font-size: 2.6rem; }
       .hero { padding: 60px 20px 40px; }
-      .demo-canvas { height: 320px; }
-      .mini-card-mockup { width: 280px; }
+      .nav-links { display: none; }
+      .sim-row-label { flex: 0 0 115px; width: 115px; }
+      .sim-row-val { flex: 0 0 68px; width: 68px; }
+      .sim-big-num { font-size: 2rem; }
     }
   </style>
 </head>
 <body>
 
-  <div class="glow-bg"></div>
+  <div class="ambient-glow-1"></div>
+  <div class="ambient-glow-2"></div>
 
   <!-- Header -->
   <header>
     <div class="nav-container">
       <a href="#" class="brand">
-        <div class="brand-icon">49</div>
+        <div class="brand-icon-box">⚡</div>
         <span>Tray Hardware Monitor</span>
+        <span class="brand-ver">v2.1</span>
       </a>
       <div class="nav-links">
         <a href="#demo" class="nav-link">Canlı Demo</a>
-        <a href="#features" class="nav-link">Özellikler</a>
+        <a href="#bento-cards" class="nav-link">6 Donanım Kartı</a>
+        <a href="#variants" class="nav-link">M1 Varyantları</a>
+        <a href="#mobile" class="nav-link">Mobil & QR</a>
         <a href="#specs" class="nav-link">Performans</a>
+        <a href="#quickstart" class="nav-link">Hızlı Başlat</a>
         <a href="https://github.com/fth2745/TrayHardwareMonitor" target="_blank" class="btn-github">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
           </svg>
-          GitHub Repo
+          GitHub
         </a>
       </div>
     </div>
@@ -646,131 +1206,242 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="badge-pill">
-      <span>⚡ .NET 8 & LibreHardwareMonitor</span> • <span>Ultra Düşük Tüketim</span>
+      <span class="badge-dot"></span>
+      <span>v2.1.0 Sürümü Yayında</span> • <span>.NET 8 & LibreHardwareMonitor</span> • <span>Sıfır Telemetri</span>
     </div>
     <h1 class="hero-title">
       Donanımınızı İzlemenin <br>
       <span class="gradient-text">En Hafif ve Zarif</span> Yolu.
     </h1>
     <p class="hero-subtitle">
-      Arka planda neredeyse sıfır CPU (<%0.1) ve sadece ~25 MB RAM harcar. Canlı renkli tepsi simgesi, 0.8 saniye gecikmeli pürüzsüz açılan mini kartı ve HWMonitor tarzı detaylı raporuyla sisteminizi yormadan tam kontrol sağlar.
+      Arka planda neredeyse sıfır CPU (<%0.1) ve sadece ~42-78 MB Private RAM harcar. Canlı renkli sistem tepsisi simgesi, 0.8 saniye gecikmeli pürüzsüz açılan mini HUD kartı ve tarayıcınızdan / telefonunuzdan izleyebileceğiniz modern Bento UI v2 kontrol merkezi.
     </p>
 
     <div class="hero-buttons">
       <a href="#demo" class="btn-primary">
         <span>🎮 Canlı Demoyu Dene</span>
       </a>
-      <a href="https://github.com/fth2745/TrayHardwareMonitor" target="_blank" class="btn-secondary">
-        <span>📦 GitHub'dan İndir</span>
+      <a href="https://github.com/fth2745/TrayHardwareMonitor/releases" target="_blank" class="btn-secondary">
+        <span>📦 v2.1 İndir (.exe)</span>
       </a>
+    </div>
+
+    <div class="hero-highlights">
+      <div class="hero-highlight-item">🛡️ <strong>UAC Uyarısız</strong> Başlangıç</div>
+      <div class="hero-highlight-item">⚡ <strong>60 FPS</strong> Akıcı Süzülen Dalga</div>
+      <div class="hero-highlight-item">📱 <strong>Mobil QR</strong> Canlı Akış</div>
+      <div class="hero-highlight-item">🔒 <strong>%100 Çevrimdışı</strong> Güvenli</div>
     </div>
   </section>
 
-  <!-- Interactive Demo -->
+  <!-- Interactive Dual-Tab Live Demo -->
   <section class="demo-section" id="demo">
-    <div class="demo-wrapper">
-      <div class="demo-header">
-        <span>🖥️ Canlı Simülasyon (Tarayıcınızda Deneyin)</span>
-        <span>Windows Görev Çubuğu</span>
+    <div class="demo-card-outer">
+      <div class="demo-nav-bar">
+        <div class="demo-tabs">
+          <button class="demo-tab-btn active" id="tabBtnBento" type="button">
+            <span>🌐 Bento UI v2 Kartı</span>
+          </button>
+          <button class="demo-tab-btn" id="tabBtnTray" type="button">
+            <span>🖥️ Sistem Tepsisi & HUD</span>
+          </button>
+        </div>
+        <div class="demo-tag-hint">
+          Simülasyon Modu: <b>Canlı Etkileşimli</b>
+        </div>
       </div>
 
-      <div class="demo-canvas">
-        <div class="demo-instruction">
-          Yeşil <b style="color:#46e682;">49</b> simgesinin <span>üstüne gelin (0.8s bekleyin)</span> veya <span>tıklayın</span>!
+      <!-- Tab 1: Bento UI Card Interactive Demo -->
+      <div class="bento-demo-stage" id="stageBento">
+        <div class="sim-card">
+          <!-- Card Top -->
+          <div class="sim-top-row">
+            <div class="sim-title">
+              <span>İşlemci (CPU) Özeti</span>
+            </div>
+            <div class="sim-actions">
+              <button class="sim-btn-icon" title="Detay Popover">⤢</button>
+            </div>
+          </div>
+
+          <!-- Metric Row -->
+          <div class="sim-metric-row">
+            <div>
+              <div class="sim-big-num">
+                <span id="demoCpuTemp">54.2</span><span class="sim-unit">°C</span>
+              </div>
+              <span class="sim-delta-chip">◆ +0.0%</span>
+            </div>
+            <div class="sim-minmax-pills">
+              <div class="sim-pill">
+                <span class="sim-pill-lbl">MİN</span>
+                <span class="sim-pill-val">42.0 °C</span>
+              </div>
+              <div class="sim-pill">
+                <span class="sim-pill-lbl">ORT</span>
+                <span class="sim-pill-val">52.1 °C</span>
+              </div>
+              <div class="sim-pill">
+                <span class="sim-pill-lbl">MAKS</span>
+                <span class="sim-pill-val">78.0 °C</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Variant Selector -->
+          <div class="sim-variant-bar">
+            <span class="sim-variant-tag">Görünüm Varyantı:</span>
+            <div class="sim-variant-pills">
+              <button class="sim-v-btn active" data-v="hybrid">Hibrit Dalga</button>
+              <button class="sim-v-btn" data-v="tiles">HUD Kutuları</button>
+              <button class="sim-v-btn" data-v="minimal">Minimalist</button>
+              <button class="sim-v-btn" data-v="gauge">Kadranlı</button>
+            </div>
+          </div>
+
+          <!-- Dynamic View Container -->
+          <div id="simDynamicView">
+            <!-- Default: Hybrid Wave -->
+            <div class="sim-sparkline-box">
+              <svg class="sim-sparkline-svg" id="demoSvg" viewBox="0 0 536 50">
+                <defs>
+                  <linearGradient id="demoGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"></stop>
+                    <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"></stop>
+                  </linearGradient>
+                </defs>
+                <path id="demoAreaPath" fill="url(#demoGrad)"></path>
+                <path id="demoLinePath" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"></path>
+                <circle id="demoLeadDot" r="4" fill="#38bdf8" stroke="#fff" stroke-width="2"></circle>
+              </svg>
+            </div>
+
+            <!-- Aligned Progress Rows -->
+            <div class="sim-rows-col">
+              <div class="sim-row">
+                <span class="sim-row-label">İşlemci Sıcaklığı</span>
+                <div class="sim-row-track"><div class="sim-row-fill" style="width: 54%;"></div></div>
+                <span class="sim-row-val">54.2 °C</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-row-label">İşlemci Hızı</span>
+                <div class="sim-row-track"><div class="sim-row-fill" style="width: 82%;"></div></div>
+                <span class="sim-row-val">4850 MHz</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-row-label">Paket Güç Tüketimi</span>
+                <div class="sim-row-track"><div class="sim-row-fill" style="width: 58%;"></div></div>
+                <span class="sim-row-val">68.4 W</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-row-label">Çekirdek Voltajı (Vcore)</span>
+                <div class="sim-row-track"><div class="sim-row-fill" style="width: 65%;"></div></div>
+                <span class="sim-row-val">1.180 V</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-row-label">Toplam İşlemci Yükü</span>
+                <div class="sim-row-track"><div class="sim-row-fill" style="width: 25%;"></div></div>
+                <span class="sim-row-val">%24.5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: System Tray & Hover HUD Demo -->
+      <div class="tray-demo-stage" id="stageTray" style="display:none;">
+        <div class="tray-instruction">
+          Görev çubuğundaki yeşil <b style="color:#46e682;">49</b> simgesinin <span>üstüne gelin (0.8s bekleyin)</span> veya <span>tıklayın</span>!
         </div>
 
         <!-- Mini Card Mockup -->
-        <div class="mini-card-mockup" id="miniCard">
-          <div class="mini-card-bar"></div>
-          <div class="mini-card-content">
-            <div class="mini-card-title">⚡ Sistem Özeti</div>
+        <div class="tray-hover-card" id="trayMiniCard">
+          <div class="tray-hover-bar"></div>
+          <div class="tray-hover-body">
+            <div class="tray-hover-head">⚡ Sistem Özeti</div>
             
-            <div class="mini-card-row">
-              <span class="mini-card-label">CPU · Core (Tctl/Tdie)</span>
-              <span class="mini-card-val val-green">49 °C</span>
+            <div class="tray-hover-row">
+              <span class="tray-hover-label">CPU · Core (Tctl/Tdie)</span>
+              <span class="tray-hover-val" style="color:var(--green);">49.2 °C</span>
             </div>
-            <div class="mini-card-row">
-              <span class="mini-card-label">CPU Total</span>
-              <span class="mini-card-val val-green">%1</span>
+            <div class="tray-hover-row">
+              <span class="tray-hover-label">CPU Total Load</span>
+              <span class="tray-hover-val" style="color:var(--green);">%18.4</span>
             </div>
-            <div class="mini-card-row">
-              <span class="mini-card-label">GPU Core</span>
-              <span class="mini-card-val val-green">34 °C</span>
+            <div class="tray-hover-row">
+              <span class="tray-hover-label">GPU Core</span>
+              <span class="tray-hover-val" style="color:var(--green);">34.0 °C</span>
             </div>
-            <div class="mini-card-row">
-              <span class="mini-card-label">GPU Memory Used</span>
-              <span class="mini-card-val val-blue">1,3 GB</span>
+            <div class="tray-hover-row">
+              <span class="tray-hover-label">GPU Power</span>
+              <span class="tray-hover-val" style="color:#38bdf8;">85.0 W</span>
             </div>
-            <div class="mini-card-row">
-              <span class="mini-card-label">RAM · Memory</span>
-              <span class="mini-card-val val-green">%43</span>
+            <div class="tray-hover-row">
+              <span class="tray-hover-label">RAM · Memory Used</span>
+              <span class="tray-hover-val" style="color:#38bdf8;">13.2 GB</span>
             </div>
-            <div class="mini-card-row">
-              <span class="mini-card-label">RAM · Memory Used</span>
-              <span class="mini-card-val val-blue">14,5 GB</span>
-            </div>
-            <div class="mini-card-row">
-              <span class="mini-card-label">NVMe SSD · Composite Temp</span>
-              <span class="mini-card-val val-green">32 °C</span>
+            <div class="tray-hover-row">
+              <span class="tray-hover-label">DIMM #1 (SPD Temp)</span>
+              <span class="tray-hover-val" style="color:var(--green);">33.8 °C</span>
             </div>
 
-            <div class="mini-card-footer">Detaylı rapor için simgeye tıklayın</div>
+            <div class="tray-hover-footer">Detaylı HWMonitor raporu için simgeye tıklayın</div>
           </div>
         </div>
 
         <!-- Detail Modal Mockup -->
-        <div class="detail-modal" id="detailModal">
-          <div class="modal-bar">
-            <span>Tray Hardware Monitor - Detaylı Donanım Raporu</span>
-            <span class="modal-close" id="modalClose">✕</span>
+        <div class="tray-detail-modal" id="trayDetailModal">
+          <div class="tray-modal-bar">
+            <span>Tray Hardware Monitor - Detaylı Donanım Ağacı</span>
+            <span class="tray-modal-close" id="trayModalClose">✕</span>
           </div>
-          <div class="modal-body">
-            <div class="modal-tree">
-              <b>🖥️ Tüm Donanım</b><br>
+          <div class="tray-modal-body">
+            <div class="tray-modal-tree">
+              <b>🖥️ Donanım</b><br>
               &nbsp;⚡ AMD Ryzen 7<br>
-              &nbsp;🎮 RTX 4070<br>
+              &nbsp;🎮 RTX 4070 Ti<br>
               &nbsp;🧠 32GB DDR5<br>
-              &nbsp;💾 Samsung NVMe
+              &nbsp;📟 NCT6798D
             </div>
-            <div class="modal-table">
+            <div class="tray-modal-table">
               <table>
                 <thead>
                   <tr>
-                    <th>Sensör</th>
+                    <th>Sensör Adı</th>
                     <th>Tür</th>
-                    <th>Değer</th>
+                    <th>Anlık</th>
                     <th>Min</th>
                     <th>Maks</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>📌 CPU Package</td>
+                    <td>📌 CPU Core</td>
                     <td>Sıcaklık</td>
-                    <td>49.2 °C</td>
+                    <td>54.2 °C</td>
                     <td>42.0 °C</td>
-                    <td>71.5 °C</td>
+                    <td>78.0 °C</td>
                   </tr>
                   <tr>
-                    <td>⭐ CPU Total</td>
+                    <td>⭐ Total Load</td>
                     <td>Yük</td>
-                    <td>%1.4</td>
-                    <td>%0.0</td>
-                    <td>%98.0</td>
+                    <td>%24.5</td>
+                    <td>%2.0</td>
+                    <td>%99.0</td>
                   </tr>
                   <tr>
                     <td>⭐ GPU Core</td>
                     <td>Sıcaklık</td>
-                    <td>34.0 °C</td>
-                    <td>31.0 °C</td>
-                    <td>64.0 °C</td>
+                    <td>46.8 °C</td>
+                    <td>38.0 °C</td>
+                    <td>71.0 °C</td>
                   </tr>
                   <tr>
                     <td>⭐ Memory Load</td>
                     <td>Yük</td>
-                    <td>%43.1</td>
+                    <td>%41.5</td>
                     <td>%38.0</td>
-                    <td>%52.0</td>
+                    <td>%60.0</td>
                   </tr>
                 </tbody>
               </table>
@@ -780,164 +1451,498 @@
 
         <!-- Taskbar -->
         <div class="taskbar-mockup">
-          <div class="taskbar-icon">⌃</div>
-          <div class="tray-target" id="trayIcon" title="Tray Hardware Monitor">49</div>
-          <div class="taskbar-icon">🔄</div>
-          <div class="taskbar-icon">📶</div>
-          <div class="taskbar-icon">🔊</div>
+          <div class="taskbar-sys-icon">⌃</div>
+          <div class="tray-live-target" id="trayTargetIcon" title="Tray Hardware Monitor">49</div>
+          <div class="taskbar-sys-icon">🔄</div>
+          <div class="taskbar-sys-icon">📶</div>
+          <div class="taskbar-sys-icon">🔊</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Features Grid -->
-  <section class="features-section" id="features">
-    <h2 class="section-title">Neden Tray Hardware Monitor?</h2>
-    <p class="section-desc">Hafiflik, zarafet ve tam kontrol için sıfırdan optimize edildi.</p>
+  <!-- 6 Fixed Hardware Cards Showcase Grid -->
+  <section class="section-wrap" id="bento-cards">
+    <div class="sec-header">
+      <span class="sec-pill">Modüler Donanım Havuzu</span>
+      <h2 class="sec-title">6 Sabit Optimize Donanım Kartı</h2>
+      <p class="sec-desc">Kullanıcı ihtiyaçlarına göre önceden yapılandırılmış, her biri kendi donanım türüne özel akıllı grafikler sunan Bento panelleri.</p>
+    </div>
 
-    <div class="grid-cards">
-      <div class="feature-card">
-        <div class="feature-icon">🎯</div>
-        <h3 class="feature-title">Dinamik Canlı İkon</h3>
-        <p class="feature-text">
-          Tepside sabit simge yerine seçtiğiniz sensörün anlık değerini renk kodlu rakamla (yeşil: serin, turuncu: sıcak, kırmızı: kritik) canlı çizer.
+    <div class="bento-showcase-grid">
+      <!-- Card 1 -->
+      <div class="bento-card-item">
+        <div class="bento-card-icon">⚡</div>
+        <h3 class="bento-card-title">İşlemci (CPU) Özeti</h3>
+        <p class="bento-card-text">
+          Sıcaklık, çekirdek frekansı, paket güç tüketimi (Watt), çekirdek voltajı (Vcore) ve toplam yükü milimetrik hizalı çubuklarla takip edin.
+        </p>
+        <div class="bento-card-badges">
+          <span class="card-mini-tag">60 FPS Dalga</span>
+          <span class="card-mini-tag">4 M1 Varyantı</span>
+          <span class="card-mini-tag">Min / Ort / Maks</span>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="bento-card-item">
+        <div class="bento-card-icon">🎮</div>
+        <h3 class="bento-card-title">Ekran Kartı (GPU) Özeti</h3>
+        <p class="bento-card-text">
+          GPU çekirdek ısısı, Hotspot, Bellek sıcaklığı, saat hızları, GPU güç tüketimi ve çift fan RPM devirlerini tek ekranda eşzamanlı izleyin.
+        </p>
+        <div class="bento-card-badges">
+          <span class="card-mini-tag">Hotspot & Memory</span>
+          <span class="card-mini-tag">Fan 1 & Fan 2 RPM</span>
+          <span class="card-mini-tag">Watt Çubuğu</span>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="bento-card-item">
+        <div class="bento-card-icon">🧠</div>
+        <h3 class="bento-card-title">Bellek (RAM) & DIMM SPD</h3>
+        <p class="bento-card-text">
+          Toplam kullanım yüzdesi, kullanılan ve kalan GB miktarı ile birlikte anakart üzerindeki gerçek DDR5/DDR4 DIMM modül sıcaklıklarını görün.
+        </p>
+        <div class="bento-card-badges">
+          <span class="card-mini-tag">DIMM #1 & #2 Isısı</span>
+          <span class="card-mini-tag">Kullanılan / Boş GB</span>
+          <span class="card-mini-tag">Senkronize %</span>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="bento-card-item">
+        <div class="bento-card-icon">📟</div>
+        <h3 class="bento-card-title">Anakart (Motherboard) Özeti</h3>
+        <p class="bento-card-text">
+          Super I/O yonga setinden (Nuvoton/ITE) gelen sistem sıcaklıkları ile +3.3V, AVCC, 3VSB ve CPU Termination voltaj hatlarının sağlığı.
+        </p>
+        <div class="bento-card-badges">
+          <span class="card-mini-tag">Sensör Sıcaklıkları</span>
+          <span class="card-mini-tag">+3.3V Hatları</span>
+          <span class="card-mini-tag">Super I/O</span>
+        </div>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="bento-card-item">
+        <div class="bento-card-icon">🔌</div>
+        <h3 class="bento-card-title">Güç Tüketimi (PSU) Özeti</h3>
+        <p class="bento-card-text">
+          İşlemci ve ekran kartı tüketimlerini birleştirerek tahmini anlık sistem güç çekişini (~Watt) hesaplar; yük paylarını grafiksel kıyaslar.
+        </p>
+        <div class="bento-card-badges">
+          <span class="card-mini-tag">Toplam ~Watt</span>
+          <span class="card-mini-tag">CPU vs GPU Dağılımı</span>
+          <span class="card-mini-tag">Dinamik İbre</span>
+        </div>
+      </div>
+
+      <!-- Card 6 -->
+      <div class="bento-card-item">
+        <div class="bento-card-icon">🌀</div>
+        <h3 class="bento-card-title">Kasa Fanları & Soğutma HUD</h3>
+        <p class="bento-card-text">
+          Kasa içi tüm fanların devirlerini (RPM) kompakt dairesel halka HUD'larla sergiler; dönen fanları yeşil ve devir hızına göre ölçekler.
+        </p>
+        <div class="bento-card-badges">
+          <span class="card-mini-tag">Dairesel Halka HUD</span>
+          <span class="card-mini-tag">7+ Fan Desteği</span>
+          <span class="card-mini-tag">0 RPM Koruması</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 M1 Variants Feature Section -->
+  <section class="section-wrap" id="variants">
+    <div class="sec-header">
+      <span class="sec-pill">Kişiselleştirme</span>
+      <h2 class="sec-title">4 M1 Donanım Matrisi Görünümü</h2>
+      <p class="sec-desc">Her donanım kartının sağ üst köşesindeki palet butonuna tıklayarak tarzınıza uygun görünümü anında seçebilirsiniz.</p>
+    </div>
+
+    <div class="variants-grid">
+      <div class="variant-box">
+        <span class="variant-box-badge">Varyant 1</span>
+        <h3 class="variant-box-title">🎨 Hibrit Dalga</h3>
+        <p class="variant-box-desc">
+          Üstte 60 FPS süzülen akıcı Bezier sparkline eğrisi, altta ise dikey koordinatları kusursuz hizalanmış 5 satırlı ilerleme tablosu.
         </p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">✨</div>
-        <h3 class="feature-title">Akıcı Hover Animasyonu</h3>
-        <p class="feature-text">
-          Windows varsayılanı gibi 0.8 sn bekleme süresiyle yanlışlıkla açılmaları önler; açılırken ve kapanırken pürüzsüzce solarak (fade in / fade out) kaybolur.
+      <div class="variant-box">
+        <span class="variant-box-badge">Varyant 2</span>
+        <h3 class="variant-box-title">📦 HUD Kutuları</h3>
+        <p class="variant-box-desc">
+          NZXT CAM esintili modern cam efektli kutucuklar. Sol tarafta büyük kahraman metrik, sağ tarafta 4 kompakt bilgi hücresi.
         </p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">⭐</div>
-        <h3 class="feature-title">Tamamen Özelleştirilebilir</h3>
-        <p class="feature-text">
-          Detaylı raporda dilediğiniz sensöre sağ tıklayarak tepsi simgesi yapabilir veya mini özet kartına tek tıkla ekleyip çıkarabilirsiniz.
+      <div class="variant-box">
+        <span class="variant-box-badge">Varyant 3</span>
+        <h3 class="variant-box-title">✨ Minimalist</h3>
+        <p class="variant-box-desc">
+          Grafik kalabalığından uzak, saf Apple tipografisi, büyük okunabilir rakamlar ve yönsel delta çipleri ile sakin bir deneyim.
         </p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3 class="feature-title">60 FPS Donmasız UI</h3>
-        <p class="feature-text">
-          Donanım taraması tamamen arka plan iş parçacığında çalışır. Arayüz asla kilitlenmez veya takılmaz, sütunlar pencereye göre otomatik orantılanır.
-        </p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
-        <h3 class="feature-title">Sessiz UAC Başlangıcı</h3>
-        <p class="feature-text">
-          Windows Görev Zamanlayıcı entegrasyonu sayesinde, CPU sıcaklıklarını okumak için gerekli yönetici iznine rağmen her açılışta UAC onay kutusu sormadan başlar.
-        </p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🍃</div>
-        <h3 class="feature-title">Görünmez Kaynak Tüketimi</h3>
-        <p class="feature-text">
-          Arka planda yalnızca seçtiğiniz özet sensörleri günceller. CPU tüketimi <%0.1, RAM tüketimi ~25 MB seviyesinde kalır.
+      <div class="variant-box">
+        <span class="variant-box-badge">Varyant 4</span>
+        <h3 class="variant-box-title">🧭 Kadranlı İbre</h3>
+        <p class="variant-box-desc">
+          Otomobil gösterge panellerini andıran 240° dairesel SVG ibre, parlayan neon tepe noktası ve alt uydu metrik barları.
         </p>
       </div>
     </div>
   </section>
 
+  <!-- Mobile QR Section -->
+  <section class="section-wrap" id="mobile">
+    <div class="mobile-feature-box">
+      <div class="mobile-feature-left">
+        <span class="sec-pill">Mobil Deneyim</span>
+        <h2 class="sec-title" style="text-align:left;">Telefonunuzu İkinci Bir Telemetri Ekranına Dönüştürün</h2>
+        <p class="sec-desc" style="text-align:left;margin-bottom:20px;">
+          Sistem tepsisinden <b>"📱 Mobil Web İzleme (QR Kod)"</b> penceresini açın. Telefon kameranızla QR kodu okuttuğunuz an bilgisayarınızın tüm canlı verileri ekrana gelsin.
+        </p>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;font-size:0.92rem;color:#cbd5e1;margin-bottom:24px;">
+          <li>📱 <b>Dikey Tutuşta:</b> Rahat, ferah tek sütun; taşma veya sıkışma yapmaz.</li>
+          <li>🔄 <b>Yatırıldığında:</b> Otomatik olarak 2 sütunlu Bento ızgarasına dönüşür.</li>
+          <li>📶 <b>Sıfır Bulut Bağımlılığı:</b> Yalnızca yerel Wi-Fi/LAN üzerinden çalışır.</li>
+        </ul>
+        <a href="#quickstart" class="btn-primary" style="padding:10px 20px;font-size:0.92rem;">Hemen Başlayın</a>
+      </div>
+      <div class="mobile-feature-right">
+        <div class="mobile-mockup-frame">
+          <div class="mobile-notch"></div>
+          <div class="mobile-screen-content">
+            <div class="mobile-mini-card">
+              <div style="font-size:0.75rem;font-weight:700;color:#fff;">İşlemci (CPU) Özeti</div>
+              <div style="font-size:1.3rem;font-weight:800;color:var(--accent);">54.2 °C</div>
+            </div>
+            <div class="mobile-mini-card">
+              <div style="font-size:0.75rem;font-weight:700;color:#fff;">Ekran Kartı (GPU)</div>
+              <div style="font-size:1.3rem;font-weight:800;color:var(--green);">46.8 °C</div>
+            </div>
+            <div class="mobile-mini-card">
+              <div style="font-size:0.75rem;font-weight:700;color:#fff;">Bellek (RAM)</div>
+              <div style="font-size:1.3rem;font-weight:800;color:#cbd5e1;">%41.5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Performance Comparison -->
-  <section class="specs-section" id="specs">
-    <h2 class="section-title">Performans Karşılaştırması</h2>
-    <p class="section-desc">Gereksiz ağırlıklardan arındırılmış saf performans.</p>
+  <section class="section-wrap" id="specs">
+    <div class="sec-header">
+      <span class="sec-pill">Verimlilik Analizi</span>
+      <h2 class="sec-title">Performans ve Kaynak Karşılaştırması</h2>
+      <p class="sec-desc">Gereksiz arka plan servislerinden ve telemetri veri yüklerinden arındırılmış saf performans.</p>
+    </div>
 
     <table class="specs-table">
       <thead>
         <tr>
-          <th>Özellik</th>
-          <th>Tray Hardware Monitor</th>
-          <th>Geleneksel Araçlar (AIDA64 / HWMonitor)</th>
+          <th>Özellik & Metrik</th>
+          <th>Tray Hardware Monitor (v2.1)</th>
+          <th>NZXT CAM / iCUE</th>
+          <th>AIDA64 / HWMonitor</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Arka Plan CPU Kullanımı</td>
+          <td>Arka Plan CPU Tüketimi</td>
           <td class="highlight-cell">< %0.1</td>
-          <td>%0.5 – %2.0</td>
+          <td>%0.8 – %3.0</td>
+          <td>%0.5 – %1.5</td>
         </tr>
         <tr>
-          <td>Bellek (RAM) Tüketimi</td>
-          <td class="highlight-cell">~25 - 30 MB</td>
-          <td>80 - 200 MB</td>
+          <td>Özel Bellek (Private RAM)</td>
+          <td class="highlight-cell">~42 - 78 MB</td>
+          <td>250 - 500 MB</td>
+          <td>90 - 220 MB</td>
         </tr>
         <tr>
-          <td>Tepsi İkonu</td>
-          <td class="highlight-cell">Canlı Dinamik Rakam</td>
-          <td>Sabit Simge / Hantal</td>
-        </tr>
-        <tr>
-          <td>Hover Açılış / Kapanış</td>
-          <td class="highlight-cell">0.8s Gecikme + Solma Animasyonu</td>
-          <td>Standart Düz Tooltip veya Yok</td>
-        </tr>
-        <tr>
-          <td>Windows Başlangıç UAC</td>
+          <td>Windows Başlangıcı (UAC)</td>
           <td class="highlight-cell">Sessiz (Görev Zamanlayıcı)</td>
-          <td>Her Açılışta UAC Uyarısı</td>
+          <td>UAC Uyarısı / Hantal</td>
+          <td>UAC Onayı Gerekli</td>
+        </tr>
+        <tr>
+          <td>Web & Mobil Telemetri</td>
+          <td class="highlight-cell">Dahili Hafif REST & Bento UI</td>
+          <td>Bulut Hesabı Gerekli</td>
+          <td>Ağır Eklenti / Yok</td>
+        </tr>
+        <tr>
+          <td>Sistem Tepsisi Simgesi</td>
+          <td class="highlight-cell">Canlı Renk Kodlu Rakam (GDI+)</td>
+          <td>Sabit Logo Simge</td>
+          <td>Hantal / Düz Metin</td>
+        </tr>
+        <tr>
+          <td>Veri Gizliliği</td>
+          <td class="highlight-cell">%100 Çevrimdışı (Zero Telemetry)</td>
+          <td>Harici Bulut Telemetrisi</td>
+          <td>Kapalı Kaynak</td>
         </tr>
       </tbody>
     </table>
   </section>
 
+  <!-- Quickstart -->
+  <section class="section-wrap" id="quickstart">
+    <div class="sec-header">
+      <span class="sec-pill">3 Adımda Kurulum</span>
+      <h2 class="sec-title">Hemen Kullanmaya Başlayın</h2>
+      <p class="sec-desc">Karmaşık kurulum dosyaları veya hesap kayıtları gerekmez. İndirin, çıkartın ve çalıştırın.</p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-box">
+        <div class="step-num">1</div>
+        <h3 class="step-title">İndirin ve Çıkartın</h3>
+        <p class="step-desc">Releases sayfasından en güncel paketi indirin ve istediğiniz bir klasöre çıkartın.</p>
+        <span class="step-code">TrayHardwareMonitor_v2.1.zip</span>
+      </div>
+
+      <div class="step-box">
+        <div class="step-num">2</div>
+        <h3 class="step-title">Uygulamayı Başlatın</h3>
+        <p class="step-desc">Yönetici yetkileriyle sessizce sistem tepsisinde başlar ve canlı sıcaklık simgesini oluşturur.</p>
+        <span class="step-code">TrayHardwareMonitor.exe</span>
+      </div>
+
+      <div class="step-box">
+        <div class="step-num">3</div>
+        <h3 class="step-title">Bento Paneline Erişin</h3>
+        <p class="step-desc">Tarayıcınızdan Bento UI v2'yi açın veya tepsiden QR kod ile telefonunuzu bağlayın.</p>
+        <span class="step-code">http://localhost:8085</span>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer>
     <p>
-      <b>Tray Hardware Monitor</b> — Açık kaynaklı, hafif sistem izleme aracı.<br>
-      MIT Lisansı ile korunmaktadır. <a href="https://github.com/fth2745/TrayHardwareMonitor" target="_blank">GitHub Proje Sayfası</a>
+      <b>Tray Hardware Monitor</b> — Açık kaynaklı, hafif sistem tepsisi ve Bento UI telemetri izleyicisi.<br>
+      MIT Lisansı ile korunmaktadır. Donanım çekirdeği <a href="https://github.com/LibreHardwareMonitor/LibreHardwareMonitor" target="_blank">LibreHardwareMonitor</a> projesine dayanır.<br>
+      <a href="https://github.com/fth2745/TrayHardwareMonitor" target="_blank">GitHub Proje Deposu</a> • Sürüm v2.1.0
     </p>
   </footer>
 
   <!-- Interactive Demo Script -->
   <script>
-    const trayIcon = document.getElementById('trayIcon');
-    const miniCard = document.getElementById('miniCard');
-    const detailModal = document.getElementById('detailModal');
-    const modalClose = document.getElementById('modalClose');
+    // Tab Switching
+    const tabBtnBento = document.getElementById('tabBtnBento');
+    const tabBtnTray = document.getElementById('tabBtnTray');
+    const stageBento = document.getElementById('stageBento');
+    const stageTray = document.getElementById('stageTray');
 
-    let hoverTimer = null;
-
-    // Hover delay (0.8s) + fade
-    trayIcon.addEventListener('mouseenter', () => {
-      hoverTimer = setTimeout(() => {
-        miniCard.classList.add('visible');
-      }, 800);
+    tabBtnBento.addEventListener('click', () => {
+      tabBtnBento.classList.add('active');
+      tabBtnTray.classList.remove('active');
+      stageBento.style.display = 'flex';
+      stageTray.style.display = 'none';
     });
 
-    trayIcon.addEventListener('mouseleave', () => {
-      clearTimeout(hoverTimer);
-      // Wait slight buffer so moving into card works
-      setTimeout(() => {
-        if (!miniCard.matches(':hover') && !trayIcon.matches(':hover')) {
-          miniCard.classList.remove('visible');
+    tabBtnTray.addEventListener('click', () => {
+      tabBtnTray.classList.add('active');
+      tabBtnBento.classList.remove('active');
+      stageBento.style.display = 'none';
+      stageTray.style.display = 'flex';
+    });
+
+    // 60 FPS Sparkline Live Lerp Simulation
+    const svgArea = document.getElementById('demoAreaPath');
+    const svgLine = document.getElementById('demoLinePath');
+    const leadDot = document.getElementById('demoLeadDot');
+    const tempValEl = document.getElementById('demoCpuTemp');
+
+    const W = 536;
+    const H = 50;
+    const PADDING_Y = 8;
+    const ptsCount = 18;
+    let points = [];
+    for (let i = 0; i < ptsCount; i++) {
+      points.push(54 + Math.sin(i * 0.7) * 3);
+    }
+
+    let currentLeadDot = { x: W, y: 25 };
+    let targetLeadDot = { x: W, y: 25 };
+    let tick = 0;
+
+    function renderSparkline() {
+      tick++;
+      // Periodically update point values with gentle drift
+      if (tick % 45 === 0) {
+        points.shift();
+        const nextVal = 52 + Math.random() * 5 + Math.sin(tick * 0.05) * 4;
+        points.push(nextVal);
+        if (tempValEl) tempValEl.textContent = nextVal.toFixed(1);
+      }
+
+      const minVal = 40;
+      const maxVal = 70;
+      const stepX = W / (ptsCount - 1);
+
+      let dLine = '';
+      let dArea = '';
+
+      for (let i = 0; i < ptsCount; i++) {
+        const x = i * stepX;
+        const norm = (points[i] - minVal) / (maxVal - minVal);
+        const y = H - PADDING_Y - norm * (H - 2 * PADDING_Y);
+
+        if (i === 0) {
+          dLine += `M ${x.toFixed(1)} ${y.toFixed(1)}`;
+          dArea += `M ${x.toFixed(1)} ${H} L ${x.toFixed(1)} ${y.toFixed(1)}`;
+        } else {
+          // Bezier control
+          const prevX = (i - 1) * stepX;
+          const prevNorm = (points[i - 1] - minVal) / (maxVal - minVal);
+          const prevY = H - PADDING_Y - prevNorm * (H - 2 * PADDING_Y);
+          const cpX1 = prevX + stepX * 0.45;
+          const cpX2 = x - stepX * 0.45;
+          dLine += ` C ${cpX1.toFixed(1)} ${prevY.toFixed(1)}, ${cpX2.toFixed(1)} ${y.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
+          dArea += ` C ${cpX1.toFixed(1)} ${prevY.toFixed(1)}, ${cpX2.toFixed(1)} ${y.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
         }
-      }, 50);
+
+        if (i === ptsCount - 1) {
+          targetLeadDot = { x, y };
+        }
+      }
+
+      dArea += ` L ${W} ${H} Z`;
+
+      // 60 FPS cubic Lerp smoothing for the lead dot
+      currentLeadDot.x += (targetLeadDot.x - currentLeadDot.x) * 0.12;
+      currentLeadDot.y += (targetLeadDot.y - currentLeadDot.y) * 0.12;
+
+      if (svgLine) svgLine.setAttribute('d', dLine);
+      if (svgArea) svgArea.setAttribute('d', dArea);
+      if (leadDot) {
+        leadDot.setAttribute('cx', currentLeadDot.x.toFixed(1));
+        leadDot.setAttribute('cy', currentLeadDot.y.toFixed(1));
+      }
+
+      requestAnimationFrame(renderSparkline);
+    }
+    requestAnimationFrame(renderSparkline);
+
+    // M1 Variant Switcher within the Bento Card
+    const simDynamicView = document.getElementById('simDynamicView');
+    const vButtons = document.querySelectorAll('.sim-v-btn');
+
+    const variantTemplates = {
+      hybrid: `
+        <div class="sim-sparkline-box">
+          <svg class="sim-sparkline-svg" id="demoSvg" viewBox="0 0 536 50">
+            <defs>
+              <linearGradient id="demoGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"></stop>
+                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"></stop>
+              </linearGradient>
+            </defs>
+            <path id="demoAreaPath" fill="url(#demoGrad)"></path>
+            <path id="demoLinePath" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"></path>
+            <circle id="demoLeadDot" r="4" fill="#38bdf8" stroke="#fff" stroke-width="2"></circle>
+          </svg>
+        </div>
+        <div class="sim-rows-col">
+          <div class="sim-row"><span class="sim-row-label">İşlemci Sıcaklığı</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 54%;"></div></div><span class="sim-row-val">54.2 °C</span></div>
+          <div class="sim-row"><span class="sim-row-label">İşlemci Hızı</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 82%;"></div></div><span class="sim-row-val">4850 MHz</span></div>
+          <div class="sim-row"><span class="sim-row-label">Paket Güç Tüketimi</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 58%;"></div></div><span class="sim-row-val">68.4 W</span></div>
+          <div class="sim-row"><span class="sim-row-label">Çekirdek Voltajı (Vcore)</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 65%;"></div></div><span class="sim-row-val">1.180 V</span></div>
+          <div class="sim-row"><span class="sim-row-label">Toplam İşlemci Yükü</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 25%;"></div></div><span class="sim-row-val">%24.5</span></div>
+        </div>
+      `,
+      tiles: `
+        <div class="sim-hud-tiles-grid">
+          <div class="sim-hud-tile"><div class="sim-hud-tile-lbl">İşlemci Sıcaklığı</div><div class="sim-hud-tile-val" style="color:#38bdf8;">54.2 °C</div></div>
+          <div class="sim-hud-tile"><div class="sim-hud-tile-lbl">İşlemci Hızı</div><div class="sim-hud-tile-val">4850 MHz</div></div>
+          <div class="sim-hud-tile"><div class="sim-hud-tile-lbl">Paket Güç</div><div class="sim-hud-tile-val">68.4 W</div></div>
+          <div class="sim-hud-tile"><div class="sim-hud-tile-lbl">Vcore Voltaj</div><div class="sim-hud-tile-val">1.180 V</div></div>
+        </div>
+      `,
+      minimal: `
+        <div class="sim-minimal-box">
+          <div class="sim-rows-col">
+            <div class="sim-row"><span class="sim-row-label">İşlemci Hızı</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 82%;"></div></div><span class="sim-row-val">4850 MHz</span></div>
+            <div class="sim-row"><span class="sim-row-label">Paket Güç</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 58%;"></div></div><span class="sim-row-val">68.4 W</span></div>
+            <div class="sim-row"><span class="sim-row-label">Çekirdek Voltajı</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 65%;"></div></div><span class="sim-row-val">1.180 V</span></div>
+            <div class="sim-row"><span class="sim-row-label">Toplam Yük</span><div class="sim-row-track"><div class="sim-row-fill" style="width: 25%;"></div></div><span class="sim-row-val">%24.5</span></div>
+          </div>
+        </div>
+      `,
+      gauge: `
+        <div class="sim-gauge-box">
+          <svg width="180" height="110" viewBox="0 0 180 110">
+            <path d="M 25 95 A 65 65 0 1 1 155 95" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linecap="round"></path>
+            <path d="M 25 95 A 65 65 0 0 1 115 35" fill="none" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"></path>
+            <text x="90" y="85" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="'JetBrains Mono', monospace">54.2</text>
+            <text x="90" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="#38bdf8">°C</text>
+          </svg>
+        </div>
+      `
+    };
+
+    vButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        vButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const v = btn.getAttribute('data-v');
+        if (simDynamicView && variantTemplates[v]) {
+          simDynamicView.innerHTML = variantTemplates[v];
+        }
+      });
     });
 
-    miniCard.addEventListener('mouseleave', () => {
-      miniCard.classList.remove('visible');
-    });
+    // System Tray Hover & Click Simulation
+    const trayTargetIcon = document.getElementById('trayTargetIcon');
+    const trayMiniCard = document.getElementById('trayMiniCard');
+    const trayDetailModal = document.getElementById('trayDetailModal');
+    const trayModalClose = document.getElementById('trayModalClose');
 
-    // Click to open Detail Report Modal
-    trayIcon.addEventListener('click', () => {
-      miniCard.classList.remove('visible');
-      clearTimeout(hoverTimer);
-      detailModal.classList.add('active');
-    });
+    let trayHoverTimer = null;
 
-    modalClose.addEventListener('click', () => {
-      detailModal.classList.remove('active');
-    });
+    if (trayTargetIcon && trayMiniCard) {
+      trayTargetIcon.addEventListener('mouseenter', () => {
+        trayHoverTimer = setTimeout(() => {
+          trayMiniCard.classList.add('visible');
+        }, 800);
+      });
+
+      trayTargetIcon.addEventListener('mouseleave', () => {
+        clearTimeout(trayHoverTimer);
+        setTimeout(() => {
+          if (!trayMiniCard.matches(':hover') && !trayTargetIcon.matches(':hover')) {
+            trayMiniCard.classList.remove('visible');
+          }
+        }, 60);
+      });
+
+      trayMiniCard.addEventListener('mouseleave', () => {
+        trayMiniCard.classList.remove('visible');
+      });
+
+      trayTargetIcon.addEventListener('click', () => {
+        trayMiniCard.classList.remove('visible');
+        clearTimeout(trayHoverTimer);
+        if (trayDetailModal) trayDetailModal.classList.add('active');
+      });
+    }
+
+    if (trayModalClose && trayDetailModal) {
+      trayModalClose.addEventListener('click', () => {
+        trayDetailModal.classList.remove('active');
+      });
+    }
   </script>
 </body>
 </html>
-
