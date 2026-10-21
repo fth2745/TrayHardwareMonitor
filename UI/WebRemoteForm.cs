@@ -20,7 +20,6 @@ public class WebRemoteForm : Form
     private readonly PictureBox _picQrCode;
     private readonly TextBox _txtUrl;
     private readonly Button _btnOpenBrowser;
-    private readonly Button _btnOpenV2Browser;
     private readonly Button _btnCopyUrl;
     private readonly CheckBox _chkAutoStart;
     private readonly Label _lblInfo;
@@ -169,40 +168,28 @@ public class WebRemoteForm : Form
 
         _btnOpenBrowser = new Button
         {
-            Text = "🌐 v1 Aç",
+            Text = "🌐 Tarayıcıda Aç",
             Location = new Point(24, 318),
-            Size = new Size(130, 34),
+            Size = new Size(205, 36),
             Font = new Font("Segoe UI Semibold", 9.5f),
-            BackColor = Color.FromArgb(0, 120, 215),
+            BackColor = Color.FromArgb(37, 99, 235),
             ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand
         };
         _btnOpenBrowser.FlatAppearance.BorderSize = 0;
         _btnOpenBrowser.Click += (s, e) => OpenInBrowser();
         grpQr.Controls.Add(_btnOpenBrowser);
 
-        _btnOpenV2Browser = new Button
-        {
-            Text = "✨ UI v2 Aç",
-            Location = new Point(164, 318),
-            Size = new Size(140, 34),
-            Font = new Font("Segoe UI Semibold", 9.5f),
-            BackColor = Color.FromArgb(37, 99, 235),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat
-        };
-        _btnOpenV2Browser.FlatAppearance.BorderSize = 0;
-        _btnOpenV2Browser.Click += (s, e) => OpenInBrowser("/v2");
-        grpQr.Controls.Add(_btnOpenV2Browser);
-
         _btnCopyUrl = new Button
         {
             Text = "📋 Adresi Kopyala",
-            Location = new Point(314, 318),
-            Size = new Size(130, 34),
+            Location = new Point(239, 318),
+            Size = new Size(205, 36),
             Font = new Font("Segoe UI Semibold", 9.5f),
             BackColor = Color.White,
-            FlatStyle = FlatStyle.Flat
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand
         };
         _btnCopyUrl.Click += (s, e) => CopyUrlToClipboard();
         grpQr.Controls.Add(_btnCopyUrl);
@@ -253,7 +240,6 @@ public class WebRemoteForm : Form
             _lblStatus.ForeColor = Color.FromArgb(16, 140, 60);
             _btnToggleServer.Text = "⏹️ Sunucuyu Durdur";
             _btnOpenBrowser.Enabled = true;
-            _btnOpenV2Browser.Enabled = true;
             _btnCopyUrl.Enabled = true;
         }
         else
@@ -262,7 +248,6 @@ public class WebRemoteForm : Form
             _lblStatus.ForeColor = Color.FromArgb(200, 30, 30);
             _btnToggleServer.Text = "▶️ Sunucuyu Başlat";
             _btnOpenBrowser.Enabled = false;
-            _btnOpenV2Browser.Enabled = false;
             _btnCopyUrl.Enabled = false;
         }
 
@@ -284,8 +269,9 @@ public class WebRemoteForm : Form
                 _picQrCode.Image = QrCodeHelper.GenerateQrBitmap(url, 230);
                 oldBmp?.Dispose();
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[QR Error] {ex}");
                 _picQrCode.Image = null;
             }
         }

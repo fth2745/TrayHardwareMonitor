@@ -2,7 +2,7 @@
 bin/
 obj/
 publish/
-publish_v2/
+publish*/
 dist/
 
 ## User-specific files & configurations
