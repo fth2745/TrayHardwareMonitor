@@ -3,20 +3,32 @@ bin/
 obj/
 publish/
 publish_v2/
+dist/
 
-## User-specific files
+## User-specific files & configurations
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+uiv2-config.json
+*.local.json
 
 ## Visual Studio & IDEs
 .vs/
 .idea/
 .vscode/
 
-## Desktop Shortcuts & Temporary files
+## Desktop Shortcuts, Scripts & Temporary files
 *.lnk
 *.tmp
 *.log
 *.zip
+*.bat
+*.cmd
+
+## Operating System files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store

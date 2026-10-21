@@ -28,8 +28,11 @@ public class DetailForm : Form
     private readonly ToolStripMenuItem _menuTray;
     private readonly ToolStripMenuItem _menuPin;
 
-    // Sütun oranları: Sensör, Tür, Anlık, Min, Maks (toplam 1.0)
-    private static readonly float[] ColumnRatios = { 0.34f, 0.14f, 0.18f, 0.17f, 0.17f };
+    // Sütun oranları: Sensör, Tür, Anlık, Min, Maks, Average (toplam 1.0)
+    private static readonly float[] ColumnRatios = { 0.28f, 0.12f, 0.15f, 0.15f, 0.15f, 0.15f };
+
+    // Sensör ortalama istatistikleri (Sum, Count)
+    private readonly Dictionary<ISensor, (double Sum, int Count)> _sensorStats = new();
 
     // Listedeki satırlar ve son yazılan değerler (sadece değişen hücreler güncellenir → titreme/yük yok)
     private readonly List<(ISensor Sensor, ListViewItem Item)> _rows = new();
@@ -70,6 +73,8 @@ public class DetailForm : Form
         btnReset.Click += (s, e) =>
         {
             _hardwareService.ResetMinMax();
+            _sensorStats.Clear();
+            RecordAllSamples();
             UpdateValues();
         };
 
@@ -158,6 +163,7 @@ public class DetailForm : Form
         _listSensors.Columns.Add("Anlık Değer", -2, HorizontalAlignment.Right);
         _listSensors.Columns.Add("Minimum", -2, HorizontalAlignment.Right);
         _listSensors.Columns.Add("Maksimum", -2, HorizontalAlignment.Right);
+        _listSensors.Columns.Add("Average", -2, HorizontalAlignment.Right);
         _listSensors.ClientSizeChanged += (s, e) => ResizeColumns();
         _listSensors.DoubleClick += (s, e) => TogglePinnedForSelected();
 
@@ -229,6 +235,7 @@ public class DetailForm : Form
         {
             RebuildHardwareTree();
         }
+        RecordAllSamples();
         UpdateValues();
         _updateTimer.Start();
         _ = RefreshDataAsync();
@@ -367,7 +374,8 @@ public class DetailForm : Form
                     SensorFormat.GetTypeName(sensor.SensorType),
                     SensorFormat.FormatValue(sensor.SensorType, sensor.Value, true),
                     SensorFormat.FormatValue(sensor.SensorType, sensor.Min, true),
-                    SensorFormat.FormatValue(sensor.SensorType, sensor.Max, true)
+                    SensorFormat.FormatValue(sensor.SensorType, sensor.Max, true),
+                    SensorFormat.FormatValue(sensor.SensorType, GetAverage(sensor), true)
                 }, group)
                 {
                     Tag = sensor,
@@ -423,6 +431,11 @@ public class DetailForm : Form
             bool updated = await _hardwareService.UpdateAllAsync();
             if (IsDisposed || !Visible) return;
 
+            if (updated)
+            {
+                RecordAllSamples();
+            }
+
             if (_treeStructureVersion != _hardwareService.StructureVersion)
             {
                 RebuildHardwareTree();
@@ -448,7 +461,35 @@ public class DetailForm : Form
             SetIfChanged(item.SubItems[2], SensorFormat.FormatValue(type, sensor.Value, true));
             SetIfChanged(item.SubItems[3], SensorFormat.FormatValue(type, sensor.Min, true));
             SetIfChanged(item.SubItems[4], SensorFormat.FormatValue(type, sensor.Max, true));
+            SetIfChanged(item.SubItems[5], SensorFormat.FormatValue(type, GetAverage(sensor), true));
         }
+    }
+
+    private void RecordAllSamples()
+    {
+        foreach (var sensor in _hardwareService.AllSensors)
+        {
+            if (sensor.Value is { } val && !float.IsNaN(val))
+            {
+                if (_sensorStats.TryGetValue(sensor, out var stat))
+                {
+                    _sensorStats[sensor] = (stat.Sum + val, stat.Count + 1);
+                }
+                else
+                {
+                    _sensorStats[sensor] = (val, 1);
+                }
+            }
+        }
+    }
+
+    private float? GetAverage(ISensor sensor)
+    {
+        if (_sensorStats.TryGetValue(sensor, out var stat) && stat.Count > 0)
+        {
+            return (float)(stat.Sum / stat.Count);
+        }
+        return sensor.Value;
     }
 
     private static void SetIfChanged(ListViewItem.ListViewSubItem subItem, string text)
@@ -505,7 +546,7 @@ public class DetailForm : Form
         if (_listSensors.SelectedItems.Count == 0) return;
         var item = _listSensors.SelectedItems[0];
         var sensor = (ISensor)item.Tag!;
-        Clipboard.SetText($"{sensor.Hardware.Name} › {sensor.Name}: {item.SubItems[2].Text} (Min: {item.SubItems[3].Text}, Maks: {item.SubItems[4].Text})");
+        Clipboard.SetText($"{sensor.Hardware.Name} › {sensor.Name}: {item.SubItems[2].Text} (Min: {item.SubItems[3].Text}, Maks: {item.SubItems[4].Text}, Avg: {item.SubItems[5].Text})");
     }
 
     private void SaveReportToFile()

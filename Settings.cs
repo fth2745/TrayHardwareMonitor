@@ -12,6 +12,8 @@ public class AppSettings
     public int DetailIntervalMs { get; set; } = 1000;
     public int HoverDelayMs { get; set; } = 800;
     public bool StartWithWindows { get; set; } = false;
+    public bool WebServerEnabled { get; set; } = true;
+    public int WebServerPort { get; set; } = 8085;
 
     /// <summary>Tepsi simgesinde gösterilecek sensörün kimliği (LHM Identifier). Null ise varsayılan (CPU sıcaklığı).</summary>
     public string? TraySensorId { get; set; }
@@ -63,6 +65,7 @@ public class AppSettings
                     settings.BackgroundIntervalMs = Math.Clamp(settings.BackgroundIntervalMs, 500, 10000);
                     settings.DetailIntervalMs = Math.Clamp(settings.DetailIntervalMs, 500, 5000);
                     settings.HoverDelayMs = Math.Clamp(settings.HoverDelayMs, 100, 5000);
+                    if (settings.WebServerPort < 1024 || settings.WebServerPort > 65535) settings.WebServerPort = 8085;
                     return settings;
                 }
             }

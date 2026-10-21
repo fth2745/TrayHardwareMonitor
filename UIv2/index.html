@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="T-bento">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tray Hardware Monitor — UI v2 Modüler Telemetri</title>
+  <link rel="stylesheet" href="/v2/styles/tokens.css" />
+  <link rel="stylesheet" href="/v2/styles/layout.css" />
+  <link rel="stylesheet" href="/v2/styles/components.css" />
+</head>
+<body>
+  <div class="uiv2-shell">
+    <!-- Üst Başlık & Kontrol Çubuğu (Sade Tek Sayfa Kabuk) -->
+    <header class="uiv2-topbar">
+      <div class="topbar-brand">
+        <div class="brand-mark">V2</div>
+        <div class="brand-titles">
+          <h1>
+            <span id="hostNameTitle">Tray Hardware Telemetry</span>
+            <span id="liveStatusDot" class="live-dot" title="Canlı Veri Akışı"></span>
+          </h1>
+          <div class="brand-subtitle" id="subStatusText">Ortak Grafik Havuzu &amp; Modüler Bento Telemetri Sistemi</div>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <!-- H3: Görünüm Modu Segment Kontrolü (Dinamik Sayım app.js tarafından yazılır) -->
+        <div class="seg-control" id="modeSegmentControl" role="tablist">
+          <button class="seg-btn active" data-mode="live" type="button" id="btnTabLive">Canlı Panel</button>
+          <button class="seg-btn" data-mode="catalog" type="button" id="btnTabCatalog">Katalog</button>
+        </div>
+
+        <!-- H3: Zaman Aralığı Segment Kontrolü (Sunucu 15dk Halka Tampon Destekli) -->
+        <div class="seg-control" id="windowSegmentControl" title="Zaman Penceresi (Sunucu Halka Tamponu)">
+          <button class="seg-btn active" data-window="60" type="button">1dk</button>
+          <button class="seg-btn" data-window="300" type="button">5dk</button>
+          <button class="seg-btn" data-window="900" type="button">15dk</button>
+        </div>
+
+        <!-- Düzen Seçici -->
+        <select id="layoutSelect" class="ctrl-select" title="Izgara Düzeni">
+          <option value="bento">Düzen: Bento Mozaik (REF-2/4)</option>
+          <option value="g1-stage">Düzen: 2×2 Simetrik Sahne (REF-1)</option>
+        </select>
+
+        <!-- Tema Seçici (T-bento, T-neon, T-minimal, T-light, T-violet) -->
+        <select id="themeSelect" class="ctrl-select" title="Tema Seçimi">
+          <option value="T-bento">Tema: T-bento Koyu (#0D0D0D)</option>
+          <option value="T-neon">Tema: T-neon Çukur (#121316)</option>
+          <option value="T-minimal">Tema: T-minimal Siyah (#040507)</option>
+          <option value="T-light">Tema: T-light Açık (#EEF0F4)</option>
+          <option value="T-violet">Tema: T-violet Mor (#0B0D1E)</option>
+        </select>
+
+        <!-- Kart & Sensör Yapılandırma Butonu -->
+        <button id="btnOpenDrawer" class="ctrl-btn primary" type="button">
+          <span>＋ Sensör Seç / Kart Yönet</span>
+        </button>
+
+        <!-- Yatay Dijital Saat & Uptime Masa Modu Widget'ı -->
+        <div class="desk-clock-widget tabular-nums" id="deskClockWidget" title="Sistem Saati ve Açık Kalma Süresi">
+          <div class="desk-clock-body">
+            <div class="desk-clock-time" id="topbarClockTime">--:--:--</div>
+            <div class="desk-clock-sub">
+              <span class="desk-uptime-dot"></span>
+              <span class="desk-uptime-label">AÇIK:</span>
+              <span class="desk-uptime-val" id="topbarUptimeVal">--</span>
+            </div>
+          </div>
+          <button id="btnToggleDeskMode" class="desk-mode-btn" type="button" title="Masa Modu (Zen / Odaklanmış Ekran)">
+            <span class="desk-mode-icon">⛶</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Katalog Modu Filtre Şeridi -->
+    <section id="catalogFilterBar" class="catalog-filter-bar" style="display: none;">
+      <div class="seg-control" id="catalogGroupFilter">
+        <button class="seg-btn active" data-group="ALL" type="button">Tümü</button>
+        <button class="seg-btn" data-group="REF-1" type="button">REF-1 (Minimal)</button>
+        <button class="seg-btn" data-group="REF-2" type="button">REF-2 (Bento)</button>
+        <button class="seg-btn" data-group="REF-3" type="button">REF-3 (İbre/Çift Çizgi)</button>
+        <button class="seg-btn" data-group="REF-4" type="button">REF-4 (Neon/Petek)</button>
+        <button class="seg-btn" data-group="EXTRA" type="button">Ekstra (X1–X4)</button>
+        <button class="seg-btn" data-group="UI-HELPERS" type="button">İskelet &amp; H1–H6</button>
+      </div>
+      <div style="font-size: 12px; color: var(--text-secondary);">
+        💡 Kart başlığındaki sensör adına tıklayarak <strong>sensörü değiştirebilir</strong>, sağ üstteki <strong>×</strong> ile kartı silebilir veya <strong>⤢</strong> ile detaylı ayarları açabilirsiniz.
+      </div>
+    </section>
+
+    <!-- Ana Bento / 2x2 Kart Izgarası -->
+    <main id="dashboardGrid" class="bento-grid"></main>
+  </div>
+
+  <!-- H4: Detay ve Kart Yapılandırma Penceresi (Popover - REF-3a) -->
+  <div id="detailPopoverBackdrop" class="uiv2-popover-backdrop" aria-hidden="true">
+    <div class="uiv2-popover-card" role="dialog" aria-modal="true">
+      <button id="btnClosePopover" class="popover-close" type="button" title="Kapat">×</button>
+      <div id="popoverMiniChart" class="popover-mini-chart"></div>
+      <div id="popoverHint" class="popover-hint">Donanım Telemetri Analizi</div>
+      <div id="popoverTitle" class="popover-title">CPU Package — 45.0 °C</div>
+      <div id="popoverConfigBox" class="popover-config-box"></div>
+      <div id="popoverList" class="popover-list"></div>
+      <div class="popover-actions">
+        <button id="popoverBtnDeleteCard" class="popover-btn-danger" type="button">🗑️ Kartı Kaldır</button>
+        <button id="popoverBtnClose2" class="popover-btn-primary" type="button">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sensör & Kart Yöneticisi Çekmecesi (Drawer) -->
+  <div id="configDrawerBackdrop" class="uiv2-drawer-backdrop" aria-hidden="true">
+    <aside class="uiv2-drawer">
+      <div class="drawer-header">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 600;">Sensör &amp; Kart Yöneticisi</h2>
+          <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">İstediğiniz sensörü seçip istediğiniz grafiği atayın veya kartları kaldırın</p>
+        </div>
+        <button id="btnCloseDrawer" class="icon-btn-ghost" type="button" style="font-size: 18px;">×</button>
+      </div>
+
+      <div style="padding: 10px 20px 0; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div class="seg-control" id="drawerTabControl">
+          <button class="seg-btn active" data-dtab="active-cards" type="button" id="btnDrawerActiveTab">Aktif Kartlarım</button>
+          <button class="seg-btn" data-dtab="add-sensor" type="button">＋ Yeni Sensör / Kart Ekle</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button id="btnClearAllCards" class="ctrl-btn" type="button" style="color:var(--accent-red);font-size:11px;padding:5px 8px;">Tümünü Sil</button>
+          <button id="btnResetDefaults" class="ctrl-btn" type="button" style="font-size:11px;padding:5px 8px;">Varsayılan</button>
+        </div>
+      </div>
+
+      <div class="drawer-body">
+        <input id="sensorSearchInput" type="search" placeholder="Sensör, donanım veya grafik ara..." class="ctrl-select" style="width: 100%;" />
+        <div id="drawerContentList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="/v2/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1540 @@
+/* ==========================================================================
+   UI v2 — Card Skeletons (S-bento, S-minimal, S-hero, S-row), Charts & Modals
+   ========================================================================== */
+
+/* Canlı sayılar için tabular-nums zorunluluğu */
+.tabular-nums,
+.s-bento-big-number,
+.s-minimal-value,
+.s-hero-big-val,
+.s-row-value,
+.c1-val,
+.c4-v,
+.delta-chip,
+.chart-code-pill {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ortak Kart Kabuğu */
+.uiv2-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.16s ease, background-color 0.2s ease;
+  min-height: 230px;
+}
+
+.uiv2-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="T-light"] .uiv2-card:hover {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+/* Katalog & Uyumluluk Rozetleri */
+.chart-code-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(128, 128, 128, 0.14);
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.needs-badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.needs-badge.single { background: rgba(59, 130, 246, 0.14); color: var(--accent-blue); }
+.needs-badge.multi { background: rgba(139, 92, 246, 0.16); color: var(--accent-purple); }
+.needs-badge.derived { background: rgba(245, 158, 11, 0.16); color: var(--accent-amber); }
+
+/* ==========================================================================
+   4 KART İSKELETİ: S-bento, S-minimal, S-hero (H1), S-row
+   ========================================================================== */
+
+/* 1. S-bento: Standart Bento İskeleti (REF-2) */
+.S-bento .s-bento-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.S-bento .s-bento-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Kart Üstü Hızlı Sensör Seçici Buton */
+.card-sensor-btn {
+  background: var(--bg-card-inner);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  max-width: 190px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-sensor-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.card-sensor-select {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 4px;
+  max-width: 190px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-sensor-select:hover,
+.card-sensor-select:focus {
+  background: var(--bg-card-inner);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+  outline: none;
+}
+
+.card-sensor-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.card-action-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* H5: Sağ Üst Aksiyon & Silme Butonları */
+.icon-btn-blue,
+.icon-btn-ghost,
+.icon-btn-danger {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.icon-btn-blue {
+  background: rgba(37, 99, 235, 0.16);
+  color: var(--accent-blue);
+}
+
+.icon-btn-blue:hover {
+  background: var(--accent-blue);
+  color: #FFFFFF;
+}
+
+.icon-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.icon-btn-ghost:hover {
+  background: rgba(128, 128, 128, 0.14);
+  color: var(--text-primary);
+}
+
+.icon-btn-danger {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.icon-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--accent-red);
+}
+
+.S-bento .s-bento-metric-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 12px;
+  flex-wrap: wrap;
+}
+
+.S-bento .s-bento-big-number {
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.unit-suffix {
+  font-size: 0.52em;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 3px;
+}
+
+/* 2. S-minimal: Simetrik Minimal İskelet (REF-1) */
+.S-minimal .s-minimal-header {
+  text-align: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--divider-faint);
+  position: relative;
+}
+
+.S-minimal .card-corner-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: flex;
+  gap: 3px;
+}
+
+.S-minimal .card-corner-left {
+  position: absolute;
+  left: 0;
+  top: 2px;
+}
+
+.S-minimal .s-minimal-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.S-minimal .s-minimal-subtitle {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* 3. S-hero (H1 Kahraman Kart İskeleti — REF-2) */
+.uiv2-card.S-hero {
+  background: var(--bg-hero);
+  color: var(--text-on-hero);
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.S-hero .hero-main {
+  padding: 18px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 1;
+}
+
+.S-hero .hero-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.S-hero .hero-title {
+  font-size: 12px;
+  color: var(--text-on-hero-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.S-hero .hero-big-val {
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text-on-hero);
+}
+
+.S-hero .hero-bottom-band {
+  background: var(--bg-hero-band);
+  padding: 9px 20px;
+  font-size: 11.5px;
+  color: var(--text-on-hero-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 4. S-row: Yatay Kompakt Satır İskeleti (REF-4) */
+.uiv2-card.S-row {
+  min-height: 92px;
+  padding: 12px 18px;
+  justify-content: center;
+}
+
+.S-row .s-row-grid {
+  display: grid;
+  grid-template-columns: 38px minmax(110px, 1.1fr) minmax(120px, 1.5fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.S-row .s-row-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--bg-card-inner);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.S-row .s-row-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Erişilebilirlik Destekli Değişim / Durum Rozeti */
+.delta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.delta-chip.up {
+  color: var(--accent-green);
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.delta-chip.down {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.delta-chip.warn {
+  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.delta-chip.crit {
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.16);
+}
+
+/* Görselleştirme Alanı */
+.card-viz-area {
+  width: 100%;
+  min-height: 106px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  flex: 1;
+}
+
+.S-row .card-viz-area {
+  min-height: 46px;
+}
+
+/* ==========================================================================
+   H2 ALT ÇİZGİLİ SEKMELER & H6 HAP ETİKETLER
+   ========================================================================== */
+.h2-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--divider-faint);
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.h2-tab-list {
+  display: flex;
+  gap: 14px;
+}
+
+.h2-tab {
+  background: none;
+  border: none;
+  padding: 5px 0 7px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.h2-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-blue);
+}
+
+.h2-summary {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.h2-summary strong {
+  color: var(--accent-indigo);
+  font-weight: 600;
+}
+
+.h6-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.h6-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.h6-pill.blue { background: rgba(59, 130, 246, 0.18); color: var(--accent-blue); }
+.h6-pill.orange { background: rgba(249, 115, 22, 0.18); color: var(--accent-orange); }
+.h6-pill.green { background: rgba(34, 197, 94, 0.18); color: var(--accent-green); }
+.h6-pill.plus { background: rgba(128, 128, 128, 0.14); color: var(--text-secondary); cursor: pointer; }
+
+/* ==========================================================================
+   GRAFİK İÇ BİLEŞEN STİLLERİ (C1, C3, C4, C5, G1, G2, G3)
+   ========================================================================== */
+.c1-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.c1-row {
+  display: grid;
+  grid-template-columns: 105px 1fr 68px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.c1-label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c1-dotted-rail {
+  height: 6px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.c1-dotted-rail::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px);
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+  opacity: 0.45;
+}
+
+.c1-segment {
+  position: absolute;
+  height: 5px;
+  border-radius: 999px;
+  transition: width 0.35s ease, left 0.35s ease;
+}
+
+.c1-segment.ref { background: var(--accent-indigo); }
+.c1-segment.focus {
+  background: linear-gradient(90deg, var(--accent-peach), var(--accent-lilac));
+  height: 6px;
+}
+
+.c1-val {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.c1-val.ref { color: var(--accent-indigo); }
+.c1-val.focus { color: var(--text-primary); }
+
+/* C3: 7'li Kapsül Sütunlar */
+.c3-capsule-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: end;
+  height: 114px;
+  padding-top: 14px;
+}
+
+.c3-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.c3-badge {
+  font-size: 9px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--accent-green);
+}
+
+.c3-pill-track {
+  width: 100%;
+  max-width: 24px;
+  flex: 1;
+  background: var(--track-bg);
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.c3-pill-fill {
+  width: 100%;
+  border-radius: 999px;
+  transition: height 0.35s ease;
+}
+
+.c3-day-lbl {
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.c3-col.active .c3-day-lbl {
+  background: var(--accent-blue);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* C4: 2x2 Yatay Kapsül Izgarası */
+.c4-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.c4-capsule {
+  position: relative;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--bg-card-inner);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 11px;
+  font-size: 11.5px;
+}
+
+.c4-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--track-fill-muted);
+  transition: width 0.35s ease;
+  z-index: 0;
+}
+
+.c4-capsule span { position: relative; z-index: 1; }
+.c4-capsule .c4-k { color: var(--text-secondary); }
+.c4-capsule .c4-v { font-weight: 600; color: var(--text-primary); font-family: var(--font-mono); }
+
+/* C5: Yığılmış Renkli Bloklar */
+.c5-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+
+.c5-block {
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: width 0.35s ease;
+  min-width: 48%;
+}
+
+/* G1, G2, G3 */
+.g1-ranked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.g1-rank-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.g1-rank-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.g1-rank-num {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 16px;
+}
+
+.g1-rank-name {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.g1-rank-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(128, 128, 128, 0.14);
+  color: var(--text-secondary);
+}
+
+.g2-split-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  gap: 10px;
+}
+
+.g2-split-half {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.g2-split-divider {
+  height: 1px;
+  background: var(--divider-faint);
+  margin: 2px 0;
+}
+
+/* G3: Kompakt Çok Sütunlu Sensör Tablosu (REF-4) */
+.g3-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.g3-mini-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--divider-faint);
+}
+
+.g3-mini-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--divider-faint);
+}
+
+.g3-mini-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Katalog Bölüm Başlığı */
+.catalog-section-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 4px 6px;
+  border-bottom: 1px solid var(--divider-faint);
+  margin-top: 8px;
+}
+
+.catalog-section-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.catalog-section-header span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   H4: DETAY POPOVER PENCERESİ (REF-3a)
+   ========================================================================== */
+.uiv2-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 7, 12, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  padding: 16px;
+}
+
+.uiv2-popover-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.uiv2-popover-card {
+  width: 100%;
+  max-width: 390px;
+  background: var(--bg-popover);
+  color: var(--text-popover);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  position: relative;
+  transform: translateY(10px) scale(0.97);
+  transition: transform 0.2s ease;
+}
+
+.uiv2-popover-backdrop.open .uiv2-popover-card {
+  transform: translateY(0) scale(1);
+}
+
+.popover-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-popover);
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popover-mini-chart {
+  height: 92px;
+  margin-bottom: 10px;
+  background: rgba(37, 99, 235, 0.05);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.popover-hint {
+  font-size: 11.5px;
+  color: var(--text-popover-muted);
+  margin-bottom: 4px;
+}
+
+.popover-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.popover-config-box {
+  background: rgba(128, 128, 128, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.popover-config-box select {
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  background: var(--bg-popover);
+  color: var(--text-popover);
+  font-size: 11.5px;
+}
+
+.popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.popover-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.popover-row-pct {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563EB;
+}
+
+.popover-row-bar {
+  height: 5px;
+  background: rgba(128, 128, 128, 0.16);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.popover-row-bar-fill {
+  height: 100%;
+  background: #2563EB;
+  border-radius: 999px;
+}
+
+.popover-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.popover-btn-primary {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.popover-btn-danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #EF4444;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.popover-btn-link {
+  background: none;
+  border: none;
+  color: var(--text-popover-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   SENSÖR & KART YÖNETİCİSİ ÇEKMECESİ (DRAWER)
+   ========================================================================== */
+.uiv2-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.uiv2-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.uiv2-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-subtle);
+  z-index: 1150;
+  transform: translateX(100%);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.uiv2-drawer-backdrop.open .uiv2-drawer {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--divider-faint);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-body {
+  padding: 14px 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sensor-pick-item {
+  background: var(--bg-card-inner);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sensor-pick-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sensor-pick-controls {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.8fr;
+  gap: 6px;
+}
+
+.sensor-pick-controls select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   M1: HİBRİT BENTO TELEMETRİ ÖZET TABLOSU
+   ========================================================================== */
+.summary-matrix-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.summary-matrix-sparkline {
+  width: 100%;
+  height: 52px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-card-subtle, rgba(255, 255, 255, 0.04));
+}
+
+.summary-matrix-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.matrix-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  background: var(--bg-card-inner, rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.matrix-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+  transform: translateX(2px);
+}
+
+.matrix-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  flex: 1.2;
+}
+
+.matrix-row-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.matrix-row-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matrix-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  min-width: 60px;
+}
+
+.matrix-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.matrix-row-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 90px;
+  text-align: right;
+}
+
+.matrix-val-text {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.matrix-badge {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.matrix-badge.up {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.matrix-badge.warn {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+/* --- M1 VARYANT ÇUBUĞU & BUTONU --- */
+.m1-variant-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.m1-variant-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.m1-variant-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.m1-variant-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* --- VARYANT 2: BENTO HUD TILES --- */
+.matrix-tile-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card-inner, rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.matrix-tile-hero-val {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.matrix-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.matrix-tile-card {
+  background: var(--bg-card-inner, rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 8px 10px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.matrix-tile-card:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.matrix-tile-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.matrix-tile-icon {
+  font-size: 12px;
+}
+
+.matrix-tile-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matrix-tile-val {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* --- VARYANT 3: MİNİMALİST LİSTE --- */
+.matrix-minimal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.matrix-minimal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.matrix-minimal-row:last-child {
+  border-bottom: none;
+}
+
+.matrix-minimal-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.matrix-minimal-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.matrix-minimal-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.matrix-minimal-icon {
+  font-size: 13px;
+}
+
+.matrix-minimal-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.matrix-minimal-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.matrix-minimal-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* --- VARYANT 4: KADRANLI ÖZET --- */
+.matrix-gauge-layout {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.matrix-gauge-box {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+}
+
+.matrix-gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
+}
+
+.matrix-gauge-big-num {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.matrix-gauge-unit {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.matrix-gauge-tag {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.matrix-gauge-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.matrix-gauge-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: var(--bg-card-inner, rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  border-radius: 6px;
+}
+
+.matrix-gauge-pill-icon {
+  font-size: 11px;
+  margin-right: 6px;
+}
+
+.matrix-gauge-pill-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matrix-gauge-pill-val {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Kritik Sıcaklık Nabzı (Pulsing Alert >= 85°C)
+   ========================================================================== */
+@keyframes critical-pulse-border {
+  0%, 100% {
+    border-color: rgba(239, 68, 68, 0.45);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25), 0 0 12px rgba(239, 68, 68, 0.18);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.95);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.8), 0 0 26px rgba(239, 68, 68, 0.45);
+  }
+}
+
+.uiv2-card.is-critical-alert {
+  animation: critical-pulse-border 1.8s infinite ease-in-out !important;
+  position: relative;
+}
+
+.uiv2-card.is-critical-alert::after {
+  content: '🔥 KRİTİK';
+  position: absolute;
+  top: 10px;
+  right: 48px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #EF4444;
+  pointer-events: none;
+  z-index: 5;
+  animation: critical-pulse-badge 1.8s infinite ease-in-out;
+}
+
+@keyframes critical-pulse-badge {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* ==========================================================================
+   Yatay Dijital Saat & Uptime (Masa Modu Widget)
+   ========================================================================== */
+.desk-clock-widget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 4px 10px 4px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  user-select: none;
+}
+
+.desk-clock-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.desk-clock-time {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+
+.desk-clock-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+.desk-uptime-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.desk-uptime-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.desk-uptime-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.desk-mode-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s;
+}
+
+.desk-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+  transform: scale(1.05);
+}
+
+/* Masa / Zen Modu Aktif Olduğunda (Masa Ekranı) */
+body.desk-mode-active .uiv2-topbar .topbar-controls > :not(.desk-clock-widget) {
+  display: none !important;
+}
+
+body.desk-mode-active .brand-subtitle {
+  display: none !important;
+}
+
+body.desk-mode-active .desk-clock-widget {
+  padding: 6px 14px 6px 18px;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+}
+
+body.desk-mode-active .desk-clock-time {
+  font-size: 18px;
+}
+
+body.desk-mode-active .desk-mode-btn {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+}
+
+
+

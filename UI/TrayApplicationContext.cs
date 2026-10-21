@@ -20,6 +20,8 @@ public class TrayApplicationContext : ApplicationContext
 
     // Detay penceresi ilk tıklamada oluşturulur (kullanılmıyorsa bellek harcamaz)
     private DetailForm? _detailForm;
+    private WebRemoteForm? _webRemoteForm;
+    private readonly WebServerService _webServer;
 
     private Icon? _currentTrayIcon;
     private string? _lastIconText;
@@ -36,6 +38,13 @@ public class TrayApplicationContext : ApplicationContext
         _hardwareService.UpdateAllBlocking();
         EnsureDefaultSelections();
 
+        // Web Sunucusu başlatma
+        _webServer = new WebServerService(_hardwareService, _settings);
+        if (_settings.WebServerEnabled)
+        {
+            _webServer.Start();
+        }
+
         _miniSummaryForm = new MiniSummaryForm();
         _miniSummaryForm.SetDataProvider(GetPinnedSensors);
         _miniSummaryForm.SetHoverDelay(_settings.HoverDelayMs);
@@ -46,6 +55,11 @@ public class TrayApplicationContext : ApplicationContext
         {
             Font = new Font(_contextMenu.Font, FontStyle.Bold)
         };
+        var menuWeb = new ToolStripMenuItem("📱 Mobil & Web İzleyici", null, (s, e) => ShowWebRemoteForm())
+        {
+            Font = new Font(_contextMenu.Font, FontStyle.Bold),
+            ForeColor = Color.FromArgb(120, 40, 180)
+        };
         var menuSettings = new ToolStripMenuItem("⚙️ Ayarlar (Yenileme & Sensörler)", null, (s, e) => ShowSettingsForm());
         var menuRefresh = new ToolStripMenuItem("🔄 Şimdi Yenile", null, async (s, e) =>
         {
@@ -55,12 +69,17 @@ public class TrayApplicationContext : ApplicationContext
         var menuExit = new ToolStripMenuItem("❌ Çıkış", null, (s, e) => ExitApplication());
 
         _contextMenu.Items.Add(menuOpen);
+        _contextMenu.Items.Add(menuWeb);
         _contextMenu.Items.Add(menuRefresh);
         _contextMenu.Items.Add(new ToolStripSeparator());
         _contextMenu.Items.Add(menuSettings);
         _contextMenu.Items.Add(new ToolStripSeparator());
         _contextMenu.Items.Add(menuExit);
-        _contextMenu.Opening += (s, e) => _miniSummaryForm.DismissImmediate();
+        _contextMenu.Opening += (s, e) =>
+        {
+            _miniSummaryForm.DismissImmediate();
+            menuWeb.Text = _webServer.IsRunning ? "📱 Mobil & Web İzleyici (🟢 Açık)" : "📱 Mobil & Web İzleyici";
+        };
 
         _notifyIcon = new NotifyIcon
         {
@@ -208,6 +227,28 @@ public class TrayApplicationContext : ApplicationContext
         _detailForm.StartMonitoring();
     }
 
+    public void ShowWebRemoteForm()
+    {
+        _miniSummaryForm.DismissImmediate();
+
+        if (_webRemoteForm == null || _webRemoteForm.IsDisposed)
+        {
+            _webRemoteForm = new WebRemoteForm(_webServer, _settings);
+        }
+
+        if (!_webRemoteForm.Visible)
+        {
+            _webRemoteForm.Show();
+        }
+
+        if (_webRemoteForm.WindowState == FormWindowState.Minimized)
+        {
+            _webRemoteForm.WindowState = FormWindowState.Normal;
+        }
+        _webRemoteForm.BringToFront();
+        _webRemoteForm.Activate();
+    }
+
     private void ShowSettingsForm()
     {
         _miniSummaryForm.DismissImmediate();
@@ -229,6 +270,8 @@ public class TrayApplicationContext : ApplicationContext
         _contextMenu.Dispose();
         _miniSummaryForm.Dispose();
         _detailForm?.Dispose();
+        _webRemoteForm?.Dispose();
+        _webServer.Dispose();
         _hardwareService.Dispose();
 
         ExitThread();

@@ -66,11 +66,18 @@ internal static class Program
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now}: {e.ExceptionObject}\n"); } catch { }
             Debug.WriteLine($"Unhandled exception: {e.ExceptionObject}");
+        };
+        TaskScheduler.UnobservedTaskException += (s, e) =>
+        {
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now} Unobserved: {e.Exception}\n"); } catch { }
+            e.SetObserved();
         };
 
         // 4. Load Settings & Services
         var settings = AppSettings.Load();
+        StartupManager.SyncStartupPathIfNeeded(settings);
         var hardwareService = new HardwareMonitorService();
         hardwareService.Initialize();
 
