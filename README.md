@@ -11,6 +11,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/fth2745/TrayHardwareMonitor/releases">
+    <img src="https://img.shields.io/badge/⬇️_Hemen_İndir-TrayHardwareMonitor_v2.1.0.zip_(Hazır_Çalıştır)-00B4D8?style=for-the-badge&logo=windows&logoColor=white" alt="Hemen İndir v2.1.0" />
+  </a>
+</p>
+
+<p align="center">
   <b>Sistem tepsisinde çalışan ultra hafif, dinamik simgeli, UAC uyarısız başlangıç destekli Windows masaüstü aracı ve Apple / NZXT CAM esintili modern Bento UI v2 yerel web telemetri kontrol merkezi.</b>
 </p>
 
