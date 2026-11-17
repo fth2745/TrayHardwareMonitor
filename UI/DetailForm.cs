@@ -31,8 +31,8 @@ public class DetailForm : Form
     // Sütun oranları: Sensör, Tür, Anlık, Min, Maks, Average (toplam 1.0)
     private static readonly float[] ColumnRatios = { 0.28f, 0.12f, 0.15f, 0.15f, 0.15f, 0.15f };
 
-    // Sensör ortalama istatistikleri (Sum, Count)
-    private readonly Dictionary<ISensor, (double Sum, int Count)> _sensorStats = new();
+    // Sensör ortalama istatistikleri (Sum, Count) - string ID ile anahtarlanır
+    private readonly Dictionary<string, (double Sum, int Count)> _sensorStats = new();
 
     // Listedeki satırlar ve son yazılan değerler (sadece değişen hücreler güncellenir → titreme/yük yok)
     private readonly List<(ISensor Sensor, ListViewItem Item)> _rows = new();
@@ -471,13 +471,14 @@ public class DetailForm : Form
         {
             if (sensor.Value is { } val && !float.IsNaN(val))
             {
-                if (_sensorStats.TryGetValue(sensor, out var stat))
+                string id = HardwareMonitorService.GetId(sensor);
+                if (_sensorStats.TryGetValue(id, out var stat))
                 {
-                    _sensorStats[sensor] = (stat.Sum + val, stat.Count + 1);
+                    _sensorStats[id] = (stat.Sum + val, stat.Count + 1);
                 }
                 else
                 {
-                    _sensorStats[sensor] = (val, 1);
+                    _sensorStats[id] = (val, 1);
                 }
             }
         }
@@ -485,7 +486,8 @@ public class DetailForm : Form
 
     private float? GetAverage(ISensor sensor)
     {
-        if (_sensorStats.TryGetValue(sensor, out var stat) && stat.Count > 0)
+        string id = HardwareMonitorService.GetId(sensor);
+        if (_sensorStats.TryGetValue(id, out var stat) && stat.Count > 0)
         {
             return (float)(stat.Sum / stat.Count);
         }

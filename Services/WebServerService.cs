@@ -24,10 +24,11 @@ public class WebServerService : IDisposable
     private readonly AppSettings _settings;
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
+    private Task? _historyLoopTask;
     private readonly object _lock = new();
 
-    // Sensörlerin kümülatif ortalama istatistikleri (Sum, Count)
-    private readonly Dictionary<ISensor, (double Sum, int Count)> _stats = new();
+    // Sensörlerin kümülatif ortalama istatistikleri (Sum, Count) - string ID ile anahtarlanır (ResetComputer sonrası bellek sızıntısı önlenir)
+    private readonly Dictionary<string, (double Sum, int Count)> _stats = new();
 
     // UI v2 için 15 dakikalık (900 örnek @ 1sn) sunucu tarafı halka tamponu (Ring Buffer)
     private const int MaxHistorySamples = 900;
@@ -66,7 +67,7 @@ public class WebServerService : IDisposable
                 IsRunning = true;
                 _cts = new CancellationTokenSource();
                 _ = AcceptClientsAsync(_listener, _cts.Token);
-                _ = RecordHistoryLoopAsync(_cts.Token);
+                _historyLoopTask = RecordHistoryLoopAsync(_cts.Token);
                 StatusChanged?.Invoke();
                 return true;
             }
@@ -90,12 +91,14 @@ public class WebServerService : IDisposable
             {
                 _cts?.Cancel();
                 _listener?.Stop();
+                _historyLoopTask?.Wait(1000);
             }
             catch { }
             finally
             {
                 _listener = null;
                 _cts = null;
+                _historyLoopTask = null;
                 lock (_stats)
                 {
                     _stats.Clear();
@@ -390,7 +393,7 @@ public class WebServerService : IDisposable
         {
             ".html" => "text/html; charset=utf-8",
             ".css" => "text/css; charset=utf-8",
-            ".js" => "application/javascript; charset=utf-8",
+            ".js" or ".mjs" => "application/javascript; charset=utf-8",
             ".svg" => "image/svg+xml",
             ".json" => "application/json; charset=utf-8",
             ".png" => "image/png",
@@ -423,25 +426,49 @@ public class WebServerService : IDisposable
             {
                 // Web arayüzü aktifken donanım sensörlerinin değerlerini düzenli tara
                 await _hardwareService.UpdateAllAsync().ConfigureAwait(false);
+                if (ct.IsCancellationRequested) break;
 
-                var sensors = _hardwareService.AllSensors;
-                lock (_historyBuffer)
+                var snapshot = _hardwareService.ReadSensors(sensors =>
                 {
+                    var list = new List<(string Id, float Value)>(sensors.Count);
                     foreach (var s in sensors)
                     {
                         if (s.Value is { } val && !float.IsNaN(val))
                         {
-                            string id = HardwareMonitorService.GetId(s);
-                            if (!_historyBuffer.TryGetValue(id, out var list))
-                            {
-                                list = new List<float>(128);
-                                _historyBuffer[id] = list;
-                            }
-                            list.Add((float)Math.Round(val, 2));
-                            if (list.Count > MaxHistorySamples)
-                            {
-                                list.RemoveRange(0, list.Count - MaxHistorySamples);
-                            }
+                            list.Add((HardwareMonitorService.GetId(s), val));
+                        }
+                    }
+                    return list;
+                });
+
+                lock (_stats)
+                {
+                    foreach (var (id, val) in snapshot)
+                    {
+                        if (_stats.TryGetValue(id, out var stat))
+                        {
+                            _stats[id] = (stat.Sum + val, stat.Count + 1);
+                        }
+                        else
+                        {
+                            _stats[id] = (val, 1);
+                        }
+                    }
+                }
+
+                lock (_historyBuffer)
+                {
+                    foreach (var (id, val) in snapshot)
+                    {
+                        if (!_historyBuffer.TryGetValue(id, out var list))
+                        {
+                            list = new List<float>(128);
+                            _historyBuffer[id] = list;
+                        }
+                        list.Add((float)Math.Round(val, 2));
+                        if (list.Count > MaxHistorySamples)
+                        {
+                            list.RemoveRange(0, list.Count - MaxHistorySamples);
                         }
                     }
                 }
@@ -530,60 +557,45 @@ public class WebServerService : IDisposable
 
     private string GenerateStatsJson()
     {
-        var sensors = _hardwareService.AllSensors;
-
-        // İstatistikleri güncelle (kümülatif ortalama)
-        lock (_stats)
+        var sensorDtos = _hardwareService.ReadSensors(sensors =>
         {
+            var list = new List<object>(sensors.Count);
             foreach (var s in sensors)
             {
-                if (s.Value is { } val && !float.IsNaN(val))
+                string id = HardwareMonitorService.GetId(s);
+                float? avg;
+                lock (_stats)
                 {
-                    if (_stats.TryGetValue(s, out var stat))
+                    if (_stats.TryGetValue(id, out var stat) && stat.Count > 0)
                     {
-                        _stats[s] = (stat.Sum + val, stat.Count + 1);
+                        avg = (float)(stat.Sum / stat.Count);
                     }
                     else
                     {
-                        _stats[s] = (val, 1);
+                        avg = s.Value;
                     }
                 }
-            }
-        }
 
-        var sensorDtos = new List<object>(sensors.Count);
-        foreach (var s in sensors)
-        {
-            float? avg = null;
-            lock (_stats)
-            {
-                if (_stats.TryGetValue(s, out var stat) && stat.Count > 0)
+                var type = s.SensorType;
+                list.Add(new
                 {
-                    avg = (float)(stat.Sum / stat.Count);
-                }
-                else
-                {
-                    avg = s.Value;
-                }
+                    id,
+                    name = s.Name,
+                    hardware = s.Hardware?.Name ?? "Donanım",
+                    hardwareType = s.Hardware?.HardwareType.ToString() ?? "",
+                    type = SensorFormat.GetTypeName(type),
+                    value = s.Value,
+                    formattedValue = SensorFormat.FormatValue(type, s.Value, true),
+                    min = s.Min,
+                    formattedMin = SensorFormat.FormatValue(type, s.Min, true),
+                    max = s.Max,
+                    formattedMax = SensorFormat.FormatValue(type, s.Max, true),
+                    avg = avg,
+                    formattedAvg = SensorFormat.FormatValue(type, avg, true)
+                });
             }
-
-            var type = s.SensorType;
-            sensorDtos.Add(new
-            {
-                id = HardwareMonitorService.GetId(s),
-                name = s.Name,
-                hardware = s.Hardware?.Name ?? "Donanım",
-                type = SensorFormat.GetTypeName(type),
-                value = s.Value,
-                formattedValue = SensorFormat.FormatValue(type, s.Value, true),
-                min = s.Min,
-                formattedMin = SensorFormat.FormatValue(type, s.Min, true),
-                max = s.Max,
-                formattedMax = SensorFormat.FormatValue(type, s.Max, true),
-                avg = avg,
-                formattedAvg = SensorFormat.FormatValue(type, avg, true)
-            });
-        }
+            return list;
+        });
 
         var payload = new
         {

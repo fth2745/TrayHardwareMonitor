@@ -117,26 +117,31 @@ function parseUnit(formatted) {
   return parts.length > 1 ? parts[parts.length - 1] : '';
 }
 
+const isCpuHw = (x) => x.hardwareType === 'Cpu' || x.hardware.includes('Ryzen') || x.hardware.includes('Intel') || x.hardware.includes('CPU');
+const isGpuHw = (x) => (x.hardwareType && x.hardwareType.startsWith('Gpu')) || x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('Radeon') || x.hardware.includes('GPU');
+const isBoardHw = (x) => x.hardwareType === 'SuperIO' || x.hardwareType === 'Motherboard' || x.hardware.includes('NCT');
+
 function buildLiveMatrixRows(cardType, primarySensor, allSensors) {
   // 1. CPU (DRAM BİLGİLERİ TAMAMEN KALDIRILDI)
   if (cardType === 'cpu') {
     const tempSens = (primarySensor && primarySensor.type === 'Sıcaklık')
       ? primarySensor
-      : allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'));
+      : allSensors.find(x => isCpuHw(x) && x.type === 'Sıcaklık' && (x.name.includes('Package') || x.name.includes('Core')))
+        || allSensors.find(x => isCpuHw(x) && x.type === 'Sıcaklık');
     const tVal = tempSens?.value ?? 48;
 
-    const clockSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && (x.type === 'Saat' || x.type === 'Frekans') && (x.name.includes('Core #1') || x.name.includes('Average') || x.name.includes('Max')))
-      || allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && (x.type === 'Saat' || x.type === 'Frekans'));
+    const clockSens = allSensors.find(x => isCpuHw(x) && (x.type === 'Saat' || x.type === 'Frekans') && (x.name.includes('Core #1') || x.name.includes('Average') || x.name.includes('Max')))
+      || allSensors.find(x => isCpuHw(x) && (x.type === 'Saat' || x.type === 'Frekans'));
     const cMhz = clockSens?.value ?? 4850;
     const cGhz = (cMhz / 1000).toFixed(2);
 
-    const powerSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç' && (x.name.includes('Package') || x.name.includes('Total') || x.name.includes('Power')));
+    const powerSens = allSensors.find(x => isCpuHw(x) && x.type === 'Güç' && (x.name.includes('Package') || x.name.includes('Total') || x.name.includes('Power')));
     const pVal = powerSens?.value ?? 95;
 
     const voltSens = allSensors.find(x => (x.type === 'Voltaj' || x.type === 'Voltage') && (x.name === 'Vcore' || x.name.includes('VID') || x.name.includes('Core')));
     const vVal = voltSens?.value ?? 1.38;
 
-    const loadSens = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Yük' && (x.name.includes('Total') || x.name.includes('Package') || x.name.includes('Core')));
+    const loadSens = allSensors.find(x => isCpuHw(x) && x.type === 'Yük' && (x.name.includes('Total') || x.name.includes('Package') || x.name.includes('Core')));
     const lVal = loadSens?.value ?? 18;
 
     return [
@@ -203,19 +208,22 @@ function buildLiveMatrixRows(cardType, primarySensor, allSensors) {
 
   // 2. GPU
   if (cardType === 'gpu') {
-    const gpuTempSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'));
+    const gpuTempSens = allSensors.find(x => isGpuHw(x) && x.type === 'Sıcaklık' && x.name.includes('Core'))
+      || allSensors.find(x => isGpuHw(x) && x.type === 'Sıcaklık');
     const gtVal = gpuTempSens?.value ?? 34;
 
-    const gpuLoadSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Yük' && x.name.includes('Core'));
+    const gpuLoadSens = allSensors.find(x => isGpuHw(x) && x.type === 'Yük' && x.name.includes('Core'))
+      || allSensors.find(x => isGpuHw(x) && x.type === 'Yük');
     const glVal = gpuLoadSens?.value ?? 12;
 
-    const gpuPowerSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
+    const gpuPowerSens = allSensors.find(x => isGpuHw(x) && x.type === 'Güç');
     const gpVal = gpuPowerSens?.value ?? 45;
 
-    const gpuClockSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && (x.type === 'Saat' || x.type === 'Frekans') && x.name.includes('Core'));
+    const gpuClockSens = allSensors.find(x => isGpuHw(x) && (x.type === 'Saat' || x.type === 'Frekans') && x.name.includes('Core'))
+      || allSensors.find(x => isGpuHw(x) && (x.type === 'Saat' || x.type === 'Frekans'));
     const gcVal = gpuClockSens?.value ?? 1125;
 
-    const gpuVoltSens = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && (x.type === 'Voltaj' || x.type === 'Voltage'));
+    const gpuVoltSens = allSensors.find(x => isGpuHw(x) && (x.type === 'Voltaj' || x.type === 'Voltage'));
     const gvVal = gpuVoltSens?.value ?? 0.88;
 
     return [
@@ -359,11 +367,13 @@ function buildLiveMatrixRows(cardType, primarySensor, allSensors) {
 
   // 4. Anakart (Motherboard)
   if (cardType === 'board') {
-    const t1 = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'Temperature #1');
-    const t2 = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'Temperature #2');
-    const v33 = allSensors.find(x => x.hardware.includes('NCT') && x.name === '+3.3V');
-    const vavcc = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'AVCC');
-    const vstandby = allSensors.find(x => x.hardware.includes('NCT') && x.name === '+3V Standby');
+    const boardTemps = allSensors.filter(x => isBoardHw(x) && x.type === 'Sıcaklık');
+    const t1 = boardTemps.find(x => x.name === 'Temperature #1') || boardTemps[0];
+    const t2 = boardTemps.find(x => x.name === 'Temperature #2') || boardTemps[1];
+    const boardVolts = allSensors.filter(x => isBoardHw(x) && (x.type === 'Voltaj' || x.type === 'Voltage'));
+    const v33 = boardVolts.find(x => x.name === '+3.3V') || boardVolts[0];
+    const vavcc = boardVolts.find(x => x.name === 'AVCC') || boardVolts[1];
+    const vstandby = boardVolts.find(x => x.name === '+3V Standby') || boardVolts[2];
 
     const v1Val = t1?.value ?? 32.5;
     const v2Val = t2?.value ?? 28.0;
@@ -432,10 +442,10 @@ function buildLiveMatrixRows(cardType, primarySensor, allSensors) {
 
   // 5. PSU (Güç Kaynağı - Tahmini Sistem Gücü)
   if (cardType === 'psu') {
-    const cpuP = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç');
-    const gpuP = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
-    const v33 = allSensors.find(x => x.hardware.includes('NCT') && x.name === '+3.3V');
-    const term = allSensors.find(x => x.hardware.includes('NCT') && x.name.includes('Termination'));
+    const cpuP = allSensors.find(x => isCpuHw(x) && x.type === 'Güç');
+    const gpuP = allSensors.find(x => isGpuHw(x) && x.type === 'Güç');
+    const v33 = allSensors.find(x => isBoardHw(x) && x.name === '+3.3V');
+    const term = allSensors.find(x => isBoardHw(x) && x.name.includes('Termination'));
 
     const cpVal = cpuP?.value ?? 65;
     const gpVal = gpuP?.value ?? 45;
@@ -513,13 +523,13 @@ function buildLiveMatrixRows(cardType, primarySensor, allSensors) {
 
   // 6. Fanlar (Soğutma - 9 Adet Fan)
   if (cardType === 'fans') {
-    const nctFans = allSensors.filter(x => x.hardware.includes('NCT') && x.type === 'Fan').slice(0, 7);
-    const gpuFans = allSensors.filter(x => (x.hardware.includes('GeForce') || x.hardware.includes('GPU')) && x.type === 'Fan').slice(0, 2);
+    const nctFans = allSensors.filter(x => isBoardHw(x) && x.type === 'Fan').slice(0, 7);
+    const gpuFans = allSensors.filter(x => isGpuHw(x) && x.type === 'Fan').slice(0, 2);
     const combined = [...nctFans, ...gpuFans];
 
     return combined.map((f, i) => {
       const val = f.value ?? 0;
-      const isGpu = f.hardware.includes('GeForce') || f.hardware.includes('GPU');
+      const isGpu = isGpuHw(f);
       const maxRpm = isGpu ? 3200 : 2800;
       return {
         icon: '🌀',
@@ -606,18 +616,19 @@ function buildCardDataForWidget(w) {
   let primarySensor = null;
 
   if (w.cardType === 'cpu') {
-    primarySensor = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'))
-      || allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Sıcaklık') || allSensors[0];
+    primarySensor = allSensors.find(x => isCpuHw(x) && x.type === 'Sıcaklık' && (x.name.includes('Package') || x.name.includes('Core')))
+      || allSensors.find(x => isCpuHw(x) && x.type === 'Sıcaklık') || allSensors[0];
   } else if (w.cardType === 'gpu') {
-    primarySensor = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık' && x.name.includes('Core'))
-      || allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('GPU')) && x.type === 'Sıcaklık') || allSensors[0];
+    primarySensor = allSensors.find(x => isGpuHw(x) && x.type === 'Sıcaklık' && x.name.includes('Core'))
+      || allSensors.find(x => isGpuHw(x) && x.type === 'Sıcaklık') || allSensors[0];
   } else if (w.cardType === 'ram') {
     primarySensor = allSensors.find(x => x.hardware.includes('Total Memory') && x.type === 'Yük')
       || allSensors.find(x => x.hardware.includes('Memory') && !x.hardware.includes('Virtual') && x.type === 'Yük') || allSensors[0];
   } else if (w.cardType === 'board') {
-    primarySensor = allSensors.find(x => x.hardware.includes('NCT') && x.name === 'Temperature #1') || allSensors[0];
+    primarySensor = allSensors.find(x => isBoardHw(x) && x.name === 'Temperature #1')
+      || allSensors.find(x => isBoardHw(x) && x.type === 'Sıcaklık') || allSensors[0];
   } else if (w.cardType === 'psu') {
-    primarySensor = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç')
+    primarySensor = allSensors.find(x => isCpuHw(x) && x.type === 'Güç')
       || allSensors.find(x => x.type === 'Güç') || allSensors[0];
   } else if (w.cardType === 'fans') {
     primarySensor = allSensors.find(x => x.type === 'Fan' && (x.value || 0) > 0) || allSensors.find(x => x.type === 'Fan') || allSensors[0];
@@ -631,8 +642,8 @@ function buildCardDataForWidget(w) {
 
   // PSU için toplam güç (CPU W + GPU W) geçmişini eleman bazında birleştir
   if (w.cardType === 'psu') {
-    const cpuP = allSensors.find(x => (x.hardware.includes('Ryzen') || x.hardware.includes('CPU')) && x.type === 'Güç');
-    const gpuP = allSensors.find(x => (x.hardware.includes('GeForce') || x.hardware.includes('NVIDIA') || x.hardware.includes('GPU')) && x.type === 'Güç');
+    const cpuP = allSensors.find(x => isCpuHw(x) && x.type === 'Güç');
+    const gpuP = allSensors.find(x => isGpuHw(x) && x.type === 'Güç');
     const cpuHist = (cpuP && state.historyMap.get(cpuP.id)) || [];
     const gpuHist = (gpuP && state.historyMap.get(gpuP.id)) || [];
     const maxLen = Math.max(cpuHist.length, gpuHist.length);

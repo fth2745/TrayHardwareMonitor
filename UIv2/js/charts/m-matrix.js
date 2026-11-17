@@ -151,6 +151,11 @@ function renderFansIosWidget(container, data, rows, topBarHtml) {
         valEl.textContent = row.formattedValue;
         valEl.style.color = isActive ? 'var(--text-primary)' : 'var(--text-muted)';
       }
+      const iconEl = el.querySelector('.fan-ring-icon');
+      if (iconEl) {
+        iconEl.textContent = isActive ? '🌀' : '💤';
+        iconEl.className = `fan-ring-icon ${isActive ? 'spinning' : ''}`;
+      }
     });
   }
 }
@@ -177,7 +182,7 @@ function renderHybridVariant(container, data, rows, topBarHtml, isCpu) {
               </div>
               <div class="matrix-row-value">
                 <span class="matrix-val-text" style="color: ${row.valColor || 'var(--text-primary)'};">${row.formattedValue}</span>
-                ${row.badge ? `<span class="matrix-badge ${row.badgeCls || ''}">${row.badge}</span>` : ''}
+                <span class="matrix-badge ${row.badgeCls || ''}" style="${row.badge ? '' : 'display:none;'}">${row.badge || ''}</span>
               </div>
             </div>
           `).join('')}
@@ -205,6 +210,7 @@ function renderHybridVariant(container, data, rows, topBarHtml, isCpu) {
       if (badgeEl) {
         badgeEl.textContent = row.badge || '';
         badgeEl.className = `matrix-badge ${row.badgeCls || ''}`;
+        badgeEl.style.display = row.badge ? '' : 'none';
       }
     });
   }

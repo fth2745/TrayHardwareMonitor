@@ -1,10 +1,17 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
+using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreHardwareMonitor.Hardware;
+using Microsoft.Win32;
 using TrayHardwareMonitor.Helpers;
 
 namespace TrayHardwareMonitor.Services;
@@ -15,10 +22,16 @@ namespace TrayHardwareMonitor.Services;
 /// </summary>
 public class HardwareMonitorService : IDisposable
 {
-    private readonly Computer _computer;
+    private Computer _computer;
     private readonly object _lock = new();
     private bool _isInitialized;
+    private bool _isSuspended;
     private int _busy;
+
+    // Donanım arıza ve soğuma yönetimi (AccessViolation veya sürücü çöküşlerinde koruma)
+    private readonly ConcurrentDictionary<string, DateTime> _hardwareCooldownUntil = new();
+    private int _consecutiveFaultCount;
+    private int _resetScheduled;
 
     // UI tarafından kilitsiz okunan değişmez anlık görüntüler (her güncellemeden sonra yeniden atanır)
     private volatile IHardware[] _hardwareSnapshot = Array.Empty<IHardware>();
@@ -38,16 +51,39 @@ public class HardwareMonitorService : IDisposable
 
     public HardwareMonitorService()
     {
-        _computer = new Computer
+        _computer = CreateComputerInstance();
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+    }
+
+    private static Computer CreateComputerInstance() => new()
+    {
+        IsCpuEnabled = true,
+        IsGpuEnabled = true,
+        IsMemoryEnabled = true,
+        IsMotherboardEnabled = true,
+        IsStorageEnabled = true,
+        IsNetworkEnabled = true,
+        IsControllerEnabled = true
+    };
+
+    private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Suspend)
         {
-            IsCpuEnabled = true,
-            IsGpuEnabled = true,
-            IsMemoryEnabled = true,
-            IsMotherboardEnabled = true,
-            IsStorageEnabled = true,
-            IsNetworkEnabled = true,
-            IsControllerEnabled = true
-        };
+            _isSuspended = true;
+            Debug.WriteLine("[HardwareMonitor] System suspend detected. Pausing polling.");
+        }
+        else if (e.Mode == PowerModes.Resume)
+        {
+            Debug.WriteLine("[HardwareMonitor] System resume detected. Scheduling hardware re-initialization.");
+            Task.Run(async () =>
+            {
+                // Grafik ve donanım sürücülerinin uyanıp yeniden bağlanması için kısa bekleme
+                await Task.Delay(2500);
+                ResetComputer();
+                _isSuspended = false;
+            });
+        }
     }
 
     public void Initialize()
@@ -68,10 +104,46 @@ public class HardwareMonitorService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Sürücü çökmesi, D3/uyku uyanması veya native AccessViolation sonrası donanım motorunu baştan başlatır.
+    /// </summary>
+    public void ResetComputer()
+    {
+        lock (_lock)
+        {
+            try
+            {
+                Debug.WriteLine("[HardwareMonitor] Resetting LibreHardwareMonitor Computer instance...");
+                try { _computer.Close(); } catch { }
+                _computer = CreateComputerInstance();
+                _computer.Open();
+                _isInitialized = true;
+                _hardwareCooldownUntil.Clear();
+                _consecutiveFaultCount = 0;
+                _resetScheduled = 0;
+                RebuildSnapshots();
+                Debug.WriteLine("[HardwareMonitor] LibreHardwareMonitor successfully re-initialized.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[HardwareMonitor] Failed to reset computer: {ex.Message}");
+            }
+        }
+    }
+
     public ISensor? FindSensor(string? id)
     {
         if (string.IsNullOrEmpty(id)) return null;
         return _sensorIndex.TryGetValue(id, out var sensor) ? sensor : null;
+    }
+
+    /// <summary>Sensör anlık görüntüsünü _computer kilidi altında güvenli şekilde okur.</summary>
+    public T ReadSensors<T>(Func<IReadOnlyList<ISensor>, T> reader)
+    {
+        lock (_lock)
+        {
+            return reader(_sensorSnapshot);
+        }
     }
 
     public static string GetId(ISensor sensor) => sensor.Identifier.ToString();
@@ -93,7 +165,7 @@ public class HardwareMonitorService : IDisposable
         if (Interlocked.Exchange(ref _busy, 1) == 1) return false;
         try
         {
-            await Task.Run(work).ConfigureAwait(true);
+            await Task.Run(work).ConfigureAwait(false);
             return true;
         }
         catch
@@ -108,9 +180,10 @@ public class HardwareMonitorService : IDisposable
 
     private void UpdateAllCore()
     {
+        if (_isSuspended) return;
         lock (_lock)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _isSuspended) return;
             var sw = System.Diagnostics.Stopwatch.StartNew();
             foreach (var hardware in _computer.Hardware)
             {
@@ -123,9 +196,10 @@ public class HardwareMonitorService : IDisposable
 
     private void UpdateSensorsCore(IReadOnlyCollection<string> sensorIds)
     {
+        if (_isSuspended) return;
         lock (_lock)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _isSuspended) return;
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             var targets = new HashSet<IHardware>();
@@ -145,7 +219,7 @@ public class HardwareMonitorService : IDisposable
             {
                 foreach (var hw in targets)
                 {
-                    try { hw.Update(); } catch { /* tek cihaz hatası yok sayılır */ }
+                    UpdateHardwareSingle(hw);
                 }
             }
 
@@ -153,20 +227,99 @@ public class HardwareMonitorService : IDisposable
         }
     }
 
-    private static void UpdateHardwareRecursive(IHardware hardware)
+    [HandleProcessCorruptedStateExceptions]
+    [SecurityCritical]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void UpdateHardwareSingle(IHardware hw)
     {
+        if (IsHardwareInCooldown(hw)) return;
+        try
+        {
+            hw.Update();
+            ClearHardwareFault(hw);
+        }
+        catch (AccessViolationException ave)
+        {
+            RegisterHardwareFault(hw, ave);
+        }
+        catch (Exception ex)
+        {
+            RegisterHardwareFault(hw, ex);
+        }
+    }
+
+    [HandleProcessCorruptedStateExceptions]
+    [SecurityCritical]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void UpdateHardwareRecursive(IHardware hardware)
+    {
+        if (IsHardwareInCooldown(hardware)) return;
+
         try
         {
             hardware.Update();
+            ClearHardwareFault(hardware);
         }
-        catch
+        catch (AccessViolationException ave)
         {
-            // Ignore individual hardware sensor update failures
+            RegisterHardwareFault(hardware, ave);
+        }
+        catch (Exception ex)
+        {
+            RegisterHardwareFault(hardware, ex);
         }
 
         foreach (var sub in hardware.SubHardware)
         {
             UpdateHardwareRecursive(sub);
+        }
+    }
+
+    private bool IsHardwareInCooldown(IHardware hardware)
+    {
+        string key = hardware.Identifier.ToString();
+        if (_hardwareCooldownUntil.TryGetValue(key, out var until))
+        {
+            if (DateTime.UtcNow < until)
+            {
+                return true; // Henüz soğuma süresi bitmedi, sürücüyü zorlama
+            }
+            _hardwareCooldownUntil.TryRemove(key, out _);
+        }
+        return false;
+    }
+
+    private void ClearHardwareFault(IHardware hardware)
+    {
+        // Tekil arızalı cihazın hatası diğer sağlam bileşenler tarafından maskelenmez
+    }
+
+    private void RegisterHardwareFault(IHardware hardware, Exception ex)
+    {
+        string key = hardware.Identifier.ToString();
+        int cooldownSeconds = ex is AccessViolationException ? 20 : 5;
+        _hardwareCooldownUntil[key] = DateTime.UtcNow.AddSeconds(cooldownSeconds);
+
+        int faults = Interlocked.Increment(ref _consecutiveFaultCount);
+        string faultMsg = $"[HardwareMonitor] Fault on {hardware.HardwareType} ({hardware.Name}): {ex.GetType().Name} - {ex.Message}. Cooldown: {cooldownSeconds}s (Fault #{faults})";
+        Debug.WriteLine(faultMsg);
+
+        try
+        {
+            File.AppendAllText(
+                Path.Combine(AppContext.BaseDirectory, "crash.log"),
+                $"{DateTime.Now} {faultMsg}\n");
+        }
+        catch { }
+
+        // Art arda 3 kez native sürücü hatası alınırsa tek-atış kilidiyle motor tazelemeyi tetikle
+        if (faults >= 3 && Interlocked.CompareExchange(ref _resetScheduled, 1, 0) == 0)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(2000).ConfigureAwait(false);
+                ResetComputer();
+            });
         }
     }
 
@@ -317,6 +470,7 @@ public class HardwareMonitorService : IDisposable
 
     public void Dispose()
     {
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         lock (_lock)
         {
             if (_isInitialized)

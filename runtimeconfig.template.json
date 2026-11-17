@@ -1,0 +1,8 @@
+{
+  "configProperties": {
+    "System.Runtime.InteropServices.COMPlus_legacyCorruptedStateExceptionsPolicy": 1,
+    "COMPlus_legacyCorruptedStateExceptionsPolicy": "1",
+    "DOTNET_legacyCorruptedStateExceptionsPolicy": "1"
+  }
+}
+

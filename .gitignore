@@ -12,6 +12,8 @@ dist/
 *.sln.docstates
 uiv2-config.json
 *.local.json
+.gemini/
+.agent/
 
 ## Visual Studio & IDEs
 .vs/

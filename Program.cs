@@ -16,6 +16,10 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // 0. Enable Corrupted State Exception (CSE) handling for native P/Invoke / driver access faults
+        Environment.SetEnvironmentVariable("DOTNET_legacyCorruptedStateExceptionsPolicy", "1");
+        Environment.SetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy", "1");
+
         // 1. Single instance check
         _mutex = new Mutex(true, AppMutexName, out bool isOnlyInstance);
         if (!isOnlyInstance)
@@ -54,8 +58,13 @@ internal static class Program
                 }
                 catch
                 {
-                    // If UAC was cancelled or failed, continue with whatever permissions are available
-                    _mutex = new Mutex(true, AppMutexName, out _);
+                    // If UAC was cancelled or failed, re-acquire mutex and verify single instance
+                    _mutex = new Mutex(true, AppMutexName, out bool reacquired);
+                    if (!reacquired)
+                    {
+                        _mutex.Dispose();
+                        return;
+                    }
                 }
             }
         }
@@ -64,14 +73,19 @@ internal static class Program
         ApplicationConfiguration.Initialize();
 
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (s, e) =>
+        {
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now} [UI Thread]: {e.Exception}\n"); } catch { }
+            Debug.WriteLine($"[UI Thread Exception]: {e.Exception}");
+        };
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
-            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now}: {e.ExceptionObject}\n"); } catch { }
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now} [AppDomain]: {e.ExceptionObject}\n"); } catch { }
             Debug.WriteLine($"Unhandled exception: {e.ExceptionObject}");
         };
         TaskScheduler.UnobservedTaskException += (s, e) =>
         {
-            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now} Unobserved: {e.Exception}\n"); } catch { }
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"{DateTime.Now} [UnobservedTask]: {e.Exception}\n"); } catch { }
             e.SetObserved();
         };
 
